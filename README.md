@@ -17,7 +17,7 @@ On execution a stratagem executable will:
 4. Wait for the Stratagem's cooldown time (this lets AdvancedLauncher display a green light while the stratagem is on cooldown)
 5. Terminate itself
 
-(stratagem cooldown time is set to the minimum cooldown in seconds based on full superdestroyer upgrades, these can be changed in "commands.txt")
+(stratagem cooldown time is set to the minimum cooldown in seconds based on full superdestroyer upgrades, these can be changed in "commands.txt" and then new macros can be built with those new cooldown times)
 
 Why one executable per stratagem instead of TannerReynold's macro engine's all-in-one exe?
 Doing so enables the above features through the Advanced Launcher Streamdeck plugin.
