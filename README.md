@@ -53,8 +53,8 @@ cooldown time in seconds, rounded to the nearest whole second
 
 ## TL;DR, also known as: This Nerd Stuff is Booooring, Dude
 You do not want or need to build anything, you're okay with possibly not having every single stratagem as of the current date.
-1. Download "generated_commands.zip" and put the exe files in "C:\stratagema\"
-2. Proceed to "AdvancedLauncher Modification", then to "Using In Streamdeck"
+1. Download "generated_commands.zip" from "Releases" to the right, and put the exe files in "C:\stratagema\"
+2. Proceed to "AdvancedLauncher Modification" below, then to "Using In Streamdeck"
 3. Have fun :D
 These were built using the contents of this github repo, you don't get good grades if you don't show your work!
 These MIGHT not be up to date when you read this, last build was 22/03/2025.
