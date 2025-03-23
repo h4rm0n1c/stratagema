@@ -25,7 +25,7 @@ Doing so enables the above features through the Advanced Launcher Streamdeck plu
 ## Building, summarised
 1. Download this repo. 
 2. Download and Install ImageMagick
-3. Run ``` cargo build --release ``` in the downloaded repo directory.
+3. Run "cargo build --release" in the downloaded repo directory.
 4. target/release will be created and will contain stratagema.exe and all required files to continue.
 5. Assuming all needed files are in place and imagemagick is installed... 
 6. Go to "Icons" folder in target/release and run "converticons.bat" in there.
@@ -43,11 +43,13 @@ format is straightforward, one stratagem per line, example first line:
 ```
 machine_gun|saswd|410
 ```
+```
 stratagem name, I suggest no spaces or other special characters
 pipe character
 stratagem code in wasd (to use arrows, do not change here, use 'arrows' in the program Arguments)
 pipe character
 cooldown time in seconds, rounded to the nearest whole second
+```
 
 ## TL;DR, also known as: This Nerd Stuff is Booooring, Dude
 You do not want or need to build anything, you're okay with possibly not having every single stratagem as of the current date.
