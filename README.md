@@ -1,7 +1,7 @@
 # Stratagema
 ## A Helldivers 2 Stratagem Macro Executable Builder, Primarily for Streamdeck
-Based on [![Work by TannerReynolds](https://github.com/TannerReynolds/Helldivers2-Macro-Engine/)
-[![Icons from nvigneux](https://github.com/nvigneux/Helldivers-2-Stratagems-icons-svg/)
+Based on [Work by TannerReynolds](https://github.com/TannerReynolds/Helldivers2-Macro-Engine/)
+[Icons from nvigneux](https://github.com/nvigneux/Helldivers-2-Stratagems-icons-svg/)
 
 Stratagema is a program that creates a series of rust projects that each compile into a stratagem executable, one per stratagem.
 Why? Because the AdvancedLauncher Streamdeck Plugin has some advanced features that can be used to give:
