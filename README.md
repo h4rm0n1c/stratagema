@@ -77,11 +77,11 @@ This mod to AdvancedLauncher will allow you to type in the name of your stratage
 5. Open Launcher.html in a Text Editor, preferably Notepad++ or Notepad
 6. Go to line 20, it should look like this:
 ```
-                <input class="sdpi-item-value sdProperty sdFile" type="file" id="application" accept="*" oninput="setSettings()">
+<input class="sdpi-item-value sdProperty sdFile" type="file" id="application" accept="*" oninput="setSettings()">
 ```
 7. Replace it with the following:
 ```
-                <input class="sdpi-item-value sdProperty" id="application" accept="*" oninput="setSettings()">
+<input class="sdpi-item-value sdProperty" id="application" accept="*" oninput="setSettings()">
 ```
 8. Save the file.
 9. Relaunch Elgato Streamdeck and you will now be able to type in the "Application" path box when you use AdvancedLauncher.
