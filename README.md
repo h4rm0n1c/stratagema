@@ -57,7 +57,14 @@ You do not want or need to build anything, you're okay with possibly not having 
 2. Proceed to "AdvancedLauncher Modification" below, then to "Using In Streamdeck"
 3. Have fun :D
 These were built using the contents of this github repo, you don't get good grades if you don't show your work!
-These MIGHT not be up to date when you read this, last build was 22/03/2025.
+These MIGHT not be up to date when you read this, last build was 24/03/2025.
+
+## FOR THOSE CONCERNED ABOUT SECURITY
+IF you are in any way concerned about downloading 70+ executable files, I would reccomend that you
+submit the link to generated_commands.zip in the releases section, to virustotal.com,
+I have done so before every release myself all files have come back clean from every single vendor.
+
+You are also free to download this repository, peruse the contents and rebuild everything from scratch.
 
 ## AdvancedLauncher Modification
 This mod to AdvancedLauncher will allow you to type in the name of your stratagem exe files, very convenient.
