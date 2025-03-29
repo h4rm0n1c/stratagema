@@ -75,3 +75,4 @@ seaf_artillery|dwws|0
 hive_breaker_drill|awsdss|0
 porta_hellbomb|sdwww|256
 hover_pack|swwsad|410
+grenadier_battlement|sdsad|102
