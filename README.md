@@ -5,7 +5,7 @@ Based on [Work by TannerReynolds](https://github.com/TannerReynolds/Helldivers2-
 
 Stratagema is a program that creates a series of rust projects that each compile into a stratagem executable, one per stratagem.
 Why? Because the AdvancedLauncher Streamdeck Plugin has some advanced features that can be used to give:
-1. A Cooldown timer for each stratagem button (a green light that goes away when the stratagem is available again)
+1. A Cooldown indicator for each stratagem button (a green light that goes away when the stratagem is available again)
 2. Automatic stratagem icon assignment for each stratagem button, high res icons, all current stratagems included.
 3. The ability to use the new longpress feature to cancel the cooldown timer by terminating the stratagem executable.
 4. Can be updated/rebuilt by anybody who has stratagema.exe and the supplied dependency files in this repository.
