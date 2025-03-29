@@ -1,4 +1,4 @@
-# Stratagema
+# [Stratagema](https://github.com/h4rm0n1c/stratagema)
 ## A Helldivers 2 Stratagem Macro Executable Builder, Primarily for Streamdeck
 Based on [Work by TannerReynolds](https://github.com/TannerReynolds/Helldivers2-Macro-Engine/)
 [Icons from nvigneux](https://github.com/nvigneux/Helldivers-2-Stratagems-icons-svg/)
