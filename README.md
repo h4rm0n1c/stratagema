@@ -117,3 +117,6 @@ Please do not accept alternative sources of this particular software, for your o
 Please link here rather than redistributing, as this will cut down on potential for abuse/malware.
 Everything here is open and free to be inspected, the intention is that people can confirm what they are downloading is not malware.
 Credit for any contributing code or IP has been given and linked to at the top of this file.
+
+HellDivers and HellDivers 2 are the property of Arrowhead Studios and by extension, Sony
+I do not claim ownership over anything derived from their IP.
