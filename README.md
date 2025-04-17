@@ -119,4 +119,4 @@ Everything here is open and free to be inspected, the intention is that people c
 Credit for any contributing code or IP has been given and linked to at the top of this file.
 
 HellDivers and HellDivers 2 are the property of Arrowhead Studios and by extension, Sony
-I do not claim ownership over anything derived from their IP.
+I do not claim ownership over anything derived from their IP, copyright, or trademarks.
