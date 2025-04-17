@@ -3,6 +3,8 @@
 Based on [Work by TannerReynolds](https://github.com/TannerReynolds/Helldivers2-Macro-Engine/)
 [Icons from nvigneux](https://github.com/nvigneux/Helldivers-2-Stratagems-icons-svg/)
 
+END USERS GO TO "TL;DR, also known as: This Nerd Stuff is Booooring, Dude" BELOW!
+
 Stratagema is a program that creates a series of rust projects that each compile into a stratagem executable, one per stratagem.
 Why? Because the AdvancedLauncher Streamdeck Plugin has some advanced features that can be used to give:
 1. A Cooldown indicator for each stratagem button (a green light that goes away when the stratagem is available again)
