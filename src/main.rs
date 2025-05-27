@@ -88,10 +88,10 @@ fn main() {{
 
 fn run_macro(key_sequence: &str, cooldown: u64,arrows:bool) {{
     let mut enigo = Enigo::new();
-    let delay = 50;
+    let delay_length: u64 = 1200u64 / (((key_sequence.len() + 1) * 2) as u64);
 
     enigo.key_down(Key::Control);
-    sleep(Duration::from_millis(delay));
+    sleep(Duration::from_millis(delay_length));
 
     for c in key_sequence.chars() {{
       let mut key = Key::Layout(c);
@@ -99,11 +99,11 @@ fn run_macro(key_sequence: &str, cooldown: u64,arrows:bool) {{
           key = parse_key(c);
         }}
         enigo.key_down(key);
-        sleep(Duration::from_millis(delay));
+        sleep(Duration::from_millis(delay_length));
         enigo.key_up(key);
-        sleep(Duration::from_millis(delay));
+        sleep(Duration::from_millis(delay_length));
     }}
-
+    sleep(Duration::from_millis(delay_length));
     enigo.key_up(Key::Control);
 
     println!("Cooldown for {} seconds...");
