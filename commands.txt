@@ -33,7 +33,7 @@ orbital_gas_strike|ddsd|64
 orbital_ems_strike|ddas|64
 orbital_smoke_strike|ddsw|85
 hmg_emplacement|swadda|153
-shield_relay|swasdd|76
+shield_relay|ssadad|76
 tesla_tower|swdwad|102
 ap_minefield|sawd|120
 supply_pack|saswws|410
