@@ -1,7 +1,7 @@
 machine_gun|saswd|410
-anti-material_rifle|sadws|410
+anti_material_rifle|sadws|410
 stalwart|saswwa|410
-expendable_anti-tank|ssawd|59
+expendable_anti_tank|ssawd|59
 recoiless_rifle|sadda|410
 flamethrower|sawsw|410
 autocannon|saswwd|410
