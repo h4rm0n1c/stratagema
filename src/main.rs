@@ -78,20 +78,28 @@ fn main() {{
     let key_sequence = "{}";  // Key sequence for the command
     let cooldown = {};  // Cooldown in seconds for the command
     let mut arrows:bool = false;
+    let mut ctrl:bool = true;
     
     if args.iter().any(|arg| arg.to_lowercase() == "arrows".to_lowercase()) {{
         arrows = true; //checks to see if any arguments are "arrows" if so sets stratagem input as arrow keys
     }} else {{}}
+
+    if args.iter().any(|arg| arg.to_lowercase() == "no_ctrl".to_lowercase()) {{
+        ctrl = false; //checks to see if any arguments are "no_ctrl" if so no ctrl keypress will be sent
+    }} else {{}}
     
-    run_macro(key_sequence, cooldown,arrows);
+    run_macro(key_sequence, cooldown,arrows,ctrl);
 }}
 
-fn run_macro(key_sequence: &str, cooldown: u64,arrows:bool) {{
+fn run_macro(key_sequence: &str, cooldown: u64,arrows:bool,ctrl:bool) {{
     let mut enigo = Enigo::new();
-    let delay_length: u64 = 1200u64 / (((key_sequence.len() + 1) * 2) as u64);
+    let cast_time: u64 = 1200;
+    let delay_length: u64 = cast_time / ((((key_sequence.len() as u64) + (ctrl as u64)) * 2) as u64);
 
-    enigo.key_down(Key::Control);
-    sleep(Duration::from_millis(delay_length));
+    if ctrl == true {{
+        enigo.key_down(Key::Control);
+        sleep(Duration::from_millis(delay_length));
+    }}
 
     for c in key_sequence.chars() {{
       let mut key = Key::Layout(c);
@@ -103,8 +111,11 @@ fn run_macro(key_sequence: &str, cooldown: u64,arrows:bool) {{
         enigo.key_up(key);
         sleep(Duration::from_millis(delay_length));
     }}
-    sleep(Duration::from_millis(delay_length));
-    enigo.key_up(Key::Control);
+    
+    if ctrl == true {{
+        sleep(Duration::from_millis(delay_length));
+        enigo.key_up(Key::Control);
+    }}
 
     println!("Cooldown for {} seconds...");
     sleep(Duration::from_secs(cooldown));
