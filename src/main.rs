@@ -174,6 +174,7 @@ fs::copy("build_projects.bat",output_dir.join("build_projects.bat")).unwrap();
             
         } else {
          if Path::new(&blank_icon).exists() {
+            fs::create_dir_all(icon_output_path.parent().unwrap()).expect("Failed to create icon directory");
             fs::copy(blank_icon, icon_output_path).expect("Failed to copy default blank icon file");
             } else {}
         }
