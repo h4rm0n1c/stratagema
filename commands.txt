@@ -8,14 +8,14 @@ autocannon|saswwd|410
 heavy_machine_gun|sawss|410
 airburst_rocket_launcher|swwad|410
 commando|sawsd|102
-railgun|sdaswad|410
+railgun|sdswad|410
 spear|sswss|410
 wasp|sswsd|410
 orbital_gatling_barrage|dsaww|59
 orbital_airburst_strike|ddd|85
 orbital_120mm_he_barrage|ddsads|153
 orbital_380mm_he_barrage|dswwass|205
-orbital_walking_barrage|ddsads|205
+orbital_walking_barrage|dsdsds|205
 orbital_laser|dswds|256
 orbital_napalm_barrage|ddsadw|205
 orbital_railcannon_strike|dwssd|179
