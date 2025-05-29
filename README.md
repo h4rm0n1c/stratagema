@@ -1,6 +1,7 @@
 # [Stratagema](https://github.com/h4rm0n1c/stratagema)
 ![alt text](stratagema_example.png)
 ## A Helldivers 2 Stratagem Macro Executable Builder, Primarily for Streamdeck
+Creates Macros that work every time! Vastly improved behavior and features!
 Based on [Work by TannerReynolds](https://github.com/TannerReynolds/Helldivers2-Macro-Engine/)
 [Icons from nvigneux](https://github.com/nvigneux/Helldivers-2-Stratagems-icons-svg/)
 
@@ -66,6 +67,9 @@ These MIGHT not be up to date when you read this, last build was 28/05/2025.
 IF you are in any way concerned about downloading 70+ executable files, I would reccomend that you
 submit the link to generated_commands.zip in the releases section, to virustotal.com,
 I have done so before every release myself all files have come back clean from every single vendor.
+
+Update: One or two Vendors are marking these releases as malicious, please check the release notes
+for more information about this and how to verify you're not getting malicious software.
 
 You are also free to download this repository, peruse the contents and rebuild everything from scratch.
 
