@@ -2,6 +2,7 @@
 ![alt text](stratagema_example.png)
 ## A Helldivers 2 Stratagem Macro Executable Builder, Primarily for Streamdeck
 Creates Macros that work every time! Vastly improved behavior and features!
+
 Based on [Work by TannerReynolds](https://github.com/TannerReynolds/Helldivers2-Macro-Engine/)
 [Icons from nvigneux](https://github.com/nvigneux/Helldivers-2-Stratagems-icons-svg/)
 
