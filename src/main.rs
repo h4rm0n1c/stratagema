@@ -93,7 +93,7 @@ fn main() {{
 
 fn run_macro(key_sequence: &str, cooldown: u64,arrows:bool,ctrl:bool) {{
     let mut enigo = Enigo::new();
-    let cast_time: u64 = 1200;
+    let cast_time: u64 = 500; // stratagem cast time in milliseconds, so far I've tested this in a handful of games and as of 30/05/2025 it works perfectly.
     let delay_length: u64 = cast_time / ((((key_sequence.len() as u64) + (ctrl as u64)) * 2) as u64);
 
     if ctrl == true {{
