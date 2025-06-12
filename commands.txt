@@ -78,3 +78,4 @@ hover_pack|swwsad|410
 grenadier_battlement|sdsad|102
 one_true_flag|saddw|410
 de_escalator|adwad|410
+guard_dog_stun|swawda|410
