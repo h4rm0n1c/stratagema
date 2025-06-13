@@ -36,9 +36,10 @@ Doing so enables the above features through the Advanced Launcher Streamdeck plu
 6. Go to "Icons" folder in target/release and run "converticons.bat" in there.
 7. Run stratagema.exe in target/release, it generates projects in the generated_commands folder that will be created if not present, and copies one ico file to each project folder within, it also copies "build_projects.bat" to generated_commands.
 8. Go to generated_commands folder and run "build_projects.bat" in there, it will traverse the folders for you and build each project.
-9. Find your compiled stratagem macro executables in the target/release directory of each stratagem project folder, which are in "generated_commands"
-10. Move the compiled stratagem macro exectuables, to a single folder, I use "C:\stratagema\"
+9. Find your compiled stratagem macro executables in the "macro_release" folder which will be made in the parent folder of "generated_commands"
+10. Move the compiled stratagem macro exectuables, to a better path for regular use, I use "C:\stratagema\"
 11. Admire your pretty stratagem macro executables and their amazing icons thanks to nvigenux.
+12. Use either macro keys with app launcher function or streamdeck to run stratagem macro exe files. icon on exe file is usually used automatically by most supporting software when LCD macro keys or streamdeck is used.
 
 ## Here's the cool bit, you can "update" this.
 When new stratagems come out, commands.txt can be updated to include them, alongside an identically named 256x256 PNG being placed in the icons directory, once that is done, running stratagema.exe will refresh the generated_commands folder to include these new stratagem projects, you can then pick up from step 6 above to build those fresh stratagems.
