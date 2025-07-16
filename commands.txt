@@ -79,3 +79,6 @@ grenadier_battlement|sdsad|102
 one_true_flag|saddw|410
 de_escalator|adwad|410
 guard_dog_stun|swawda|410
+warp_pack|sadsad|410
+plas_epoch|sawad|410
+laser_turret|swdswd|410
