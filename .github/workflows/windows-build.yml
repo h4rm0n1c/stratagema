@@ -1,0 +1,168 @@
+name: Windows build and release
+
+on:
+  push:
+    branches:
+      - main
+      - master
+  pull_request:
+  release:
+    types: [published]
+  workflow_dispatch:
+
+jobs:
+  build:
+    name: Build artifacts
+    runs-on: windows-latest
+    outputs:
+      version: ${{ steps.meta.outputs.version }}
+      icon_pack: ${{ steps.meta.outputs.icon_pack }}
+      artifact_prefix: ${{ steps.meta.outputs.artifact_prefix }}
+    env:
+      CARGO_TERM_COLOR: always
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Derive version metadata
+        id: meta
+        shell: pwsh
+        run: |
+          if ("${{ github.ref_type }}" -eq "tag") {
+            $version = "${{ github.ref_name }}"
+          } else {
+            $match = Select-String -Path Cargo.toml -Pattern '^version\s*=\s*"([^"]+)"' | Select-Object -First 1
+            $version = $match.Matches[0].Groups[1].Value
+          }
+          echo "version=$version" >> $env:GITHUB_OUTPUT
+          echo "icon_pack=stratagema_icon_pack_$version.zip" >> $env:GITHUB_OUTPUT
+          echo "artifact_prefix=stratagema-$version" >> $env:GITHUB_OUTPUT
+          echo "ICON_PACK_NAME=stratagema_icon_pack_$version.zip" >> $env:GITHUB_ENV
+          echo "ARTIFACT_PREFIX=stratagema-$version" >> $env:GITHUB_ENV
+
+      - name: Cache cargo registry
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+
+      - name: Cache target
+        uses: actions/cache@v4
+        with:
+          path: target
+          key: ${{ runner.os }}-target-${{ hashFiles('**/Cargo.lock') }}
+
+      - name: Set up Rust (MSVC)
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: stable-msvc
+
+      - name: Install ImageMagick
+        run: choco install imagemagick -y
+
+      - name: Build stratagema (release)
+        run: cargo build --release
+
+      - name: Convert icons to ICO
+        shell: pwsh
+        run: |
+          cd target/release/icons
+          ./converticons.bat
+
+      - name: Generate stratagem projects
+        shell: pwsh
+        run: |
+          cd target/release
+          ./stratagema.exe
+
+      - name: Build stratagem executables
+        shell: pwsh
+        run: |
+          cd target/release/generated_commands
+          ./build_projects.bat
+
+      - name: Package macro release
+        shell: pwsh
+        run: |
+          cd target/release
+          if (Test-Path macro_release.zip) { Remove-Item macro_release.zip }
+          Compress-Archive -Path macro_release\* -DestinationPath macro_release.zip
+
+      - name: Package icon pack
+        shell: pwsh
+        run: |
+          cd target/release
+          if (Test-Path $env:ICON_PACK_NAME) { Remove-Item $env:ICON_PACK_NAME }
+          Compress-Archive -Path icons\*.ico -DestinationPath $env:ICON_PACK_NAME
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ env.ARTIFACT_PREFIX }}
+          path: |
+            target/release/stratagema.exe
+            target/release/macro_release.zip
+            target/release/${{ env.ICON_PACK_NAME }}
+            target/release/icons
+
+  release:
+    name: Publish release assets
+    runs-on: windows-latest
+    needs: build
+    if: github.event_name == 'release'
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      VT_API_KEY: ${{ secrets.VT_API_KEY }}
+    steps:
+      - name: Download artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: ${{ needs.build.outputs.artifact_prefix }}
+          path: dist
+
+      - name: Upload release assets
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            dist/stratagema.exe
+            dist/macro_release.zip
+            dist/${{ needs.build.outputs.icon_pack }}
+
+      - name: VirusTotal scan (optional)
+        if: env.VT_API_KEY != ''
+        shell: pwsh
+        run: |
+          $files = @(
+            "dist/stratagema.exe",
+            "dist/macro_release.zip",
+            "dist/${{ needs.build.outputs.icon_pack }}"
+          )
+
+          $links = @()
+          foreach ($file in $files) {
+            Write-Host "Submitting $file to VirusTotal"
+            $upload = Invoke-RestMethod -Method Post -Uri "https://www.virustotal.com/api/v3/files" -Headers @{ "x-apikey" = $env:VT_API_KEY } -Form @{ file = Get-Item $file }
+            $analysisId = $upload.data.id
+
+            $analysis = $null
+            for ($i = 0; $i -lt 18; $i++) {
+              Start-Sleep -Seconds 10
+              $analysis = Invoke-RestMethod -Method Get -Uri "https://www.virustotal.com/api/v3/analyses/$analysisId" -Headers @{ "x-apikey" = $env:VT_API_KEY }
+              if ($analysis.data.attributes.status -eq "completed") { break }
+            }
+
+            if ($analysis -and $analysis.meta.file_info.sha256) {
+              $sha256 = $analysis.meta.file_info.sha256
+              $links += "- $([IO.Path]::GetFileName($file)): https://www.virustotal.com/gui/file/$sha256/detection"
+            } else {
+              Write-Warning "VirusTotal analysis for $file did not complete in time."
+            }
+          }
+
+          if ($links.Count -gt 0) {
+            $append = "`n`nVirusTotal scans:`n" + ($links -join "`n")
+            $body = gh release view "${{ github.event.release.tag_name }}" --json body -q .body
+            gh release edit "${{ github.event.release.tag_name }}" --notes "${body}${append}"
+          }
