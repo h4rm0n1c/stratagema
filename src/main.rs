@@ -47,7 +47,7 @@ fn main() {
             r#"
 [package]
 name = "{command_name}"
-version = "0.1.5"
+version = "0.1.8"
 authors = ["Tanner <Tanner@NorthPeak.Software>", "h4rm0n1c <h4rm0n1c@gmail.com>"]
 edition = "2018"
 
