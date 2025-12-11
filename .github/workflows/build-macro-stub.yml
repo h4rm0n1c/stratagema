@@ -22,7 +22,23 @@ jobs:
         run: |
           New-Item -ItemType Directory -Force -Path dist | Out-Null
           Copy-Item target/release/macro_stub.exe dist/
-          Copy-Item macro_stub/assets/blank.ico dist/
+          $iconPath = $null
+
+          if (Test-Path macro_stub/assets/blank.ico) {
+            $iconPath = "macro_stub/assets/blank.ico"
+          } else {
+            $generated = Get-ChildItem -Path target -Recurse -Filter blank.ico -File -ErrorAction SilentlyContinue |
+              Select-Object -First 1
+            if ($generated) {
+              $iconPath = $generated.FullName
+            }
+          }
+
+          if ($iconPath) {
+            Copy-Item $iconPath dist/blank.ico
+          } else {
+            Write-Host "No blank.ico available; continuing without icon artifact"
+          }
           Copy-Item macro_stub/README.md dist/
 
       - name: Upload artifact
