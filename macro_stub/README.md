@@ -29,4 +29,4 @@ Examples:
 - **Cooldown printing** – If `--cooldown` is set, the helper prints the wait message and sleeps for that duration before exiting, matching how each generated stub baked in its own cooldown.
 
 ## Assets
-The compiled Windows binary can embed a neutral blank icon so it is visually distinct from the archived per-stratagem executables. If `assets/blank.ico` is missing, the build script will attempt to generate it automatically from `icons/blank.png`; you can also drop a custom `.ico` at `assets/blank.ico` to override the generated version. When neither file is available, `build.rs` will warn and continue without embedding an icon.
+The compiled Windows binary can embed a neutral blank icon so it is visually distinct from the archived per-stratagem executables. The repository keeps binary assets out of Git; if `assets/blank.ico` is missing, the build script will attempt to generate it automatically from `icons/blank.png`, and you can drop a custom `.ico` at `assets/blank.ico` to override the generated version. When neither file is available, `build.rs` will warn and continue without embedding an icon.
