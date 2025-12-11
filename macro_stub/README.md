@@ -1,6 +1,6 @@
 # Macro Stub
 
-A single executable that reuses the original stratagem macro behavior with command-line flags instead of per-stratagem binaries. It preserves the old timing defaults (500 ms cast window, Control held unless explicitly disabled) while letting callers pick any stratagem code at runtime.
+A single executable that reuses the original stratagem macro behavior with command-line flags instead of per-stratagem binaries. It preserves the old timing defaults (500 ms cast window, Control held unless explicitly disabled) while letting callers pick any stratagem code at runtime. The helper is intended for Windows/Wine builds; when invoked on other platforms it prints a notice instead of attempting to link native input libraries.
 
 ## Quick start
 Run the helper from a shell or from the future Stream Deck plugin:
@@ -29,4 +29,4 @@ Examples:
 - **Cooldown printing** – If `--cooldown` is set, the helper prints the wait message and sleeps for that duration before exiting, matching how each generated stub baked in its own cooldown.
 
 ## Assets
-The compiled Windows binary can embed a neutral blank icon (`assets/blank.ico`) so it is visually distinct from the archived per-stratagem executables. The repository intentionally omits the icon file to avoid binary attachment issues; drop a suitable `.ico` at that path before building. If the file is missing, `build.rs` will warn and continue without embedding an icon.
+The compiled Windows binary can embed a neutral blank icon (`assets/blank.ico`) so it is visually distinct from the archived per-stratagem executables. The repository intentionally omits the icon file to avoid binary attachment issues; when targeting Windows, the build script will generate `assets/blank.ico` from `../icons/blank.png` if it is absent. If generation fails, `build.rs` will warn and continue without embedding an icon.
