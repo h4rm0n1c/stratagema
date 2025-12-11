@@ -1,0 +1,48 @@
+name: Build macro stub
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  build-windows:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Build release artifact
+        run: cargo build --release -p macro_stub
+
+      - name: Package macro stub
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path dist | Out-Null
+          Copy-Item target/release/macro_stub.exe dist/
+          $iconPath = $null
+
+          if (Test-Path macro_stub/assets/blank.ico) {
+            $iconPath = "macro_stub/assets/blank.ico"
+          } else {
+            $generated = Get-ChildItem -Path target -Recurse -Filter blank.ico -File -ErrorAction SilentlyContinue |
+              Select-Object -First 1
+            if ($generated) {
+              $iconPath = $generated.FullName
+            }
+          }
+
+          if ($iconPath) {
+            Copy-Item $iconPath dist/blank.ico
+          } else {
+            Write-Host "No blank.ico available; continuing without icon artifact"
+          }
+          Copy-Item macro_stub/README.md dist/
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: macro-stub-windows
+          path: dist
