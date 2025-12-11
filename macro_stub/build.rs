@@ -15,7 +15,10 @@ fn main() {
     };
 
     let mut res = winres::WindowsResource::new();
-    res.set_icon(resolved_path);
+    let icon_str = resolved_path
+        .to_str()
+        .expect("Icon path contained invalid UTF-8");
+    res.set_icon(icon_str);
     res.compile().expect("Failed to embed icon");
 }
 
