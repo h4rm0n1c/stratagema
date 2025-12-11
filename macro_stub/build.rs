@@ -44,13 +44,7 @@ fn ensure_icon() {
     };
 
     let (width, height) = image.dimensions();
-    let icon = match ico::IconImage::from_rgba_data(width, height, image.into_raw()) {
-        Ok(data) => data,
-        Err(err) => {
-            println!("cargo:warning=failed to build icon data: {err}");
-            return;
-        }
-    };
+    let icon = ico::IconImage::from_rgba_data(width, height, image.into_raw());
 
     let dir_entry = match ico::IconDirEntry::encode(&icon) {
         Ok(entry) => entry,
