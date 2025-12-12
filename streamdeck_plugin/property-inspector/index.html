@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Stratagema Stratagem</title>
+    <link rel="stylesheet" href="pi.css" />
+  </head>
+  <body>
+    <main class="pi">
+      <section>
+        <h2>Stratagem</h2>
+        <label>
+          <span>Selection</span>
+          <select id="stratagem-select"></select>
+        </label>
+        <label>
+          <span>Code override</span>
+          <input id="code" type="text" placeholder="saswd" />
+        </label>
+        <label>
+          <span>Cooldown (seconds)</span>
+          <input id="cooldown" type="number" min="0" step="1" />
+        </label>
+        <label class="inline">
+          <input id="use-arrows" type="checkbox" />
+          <span>Use arrow keys instead of WASD</span>
+        </label>
+        <label class="inline">
+          <input id="skip-ctrl" type="checkbox" />
+          <span>Skip hold-CTRL modifier</span>
+        </label>
+        <button id="refresh-commands" type="button">Reload commands.txt</button>
+      </section>
+
+      <section>
+        <h2>TCP broadcast (global)</h2>
+        <label class="inline">
+          <input id="tcp-enabled" type="checkbox" />
+          <span>Enable memen_demon listener</span>
+        </label>
+        <label>
+          <span>Whitelist</span>
+          <input id="tcp-whitelist" type="text" placeholder="127.0.0.1" />
+        </label>
+        <label>
+          <span>Port</span>
+          <input id="tcp-port" type="number" min="0" max="65535" step="1" placeholder="7777" />
+        </label>
+      </section>
+    </main>
+
+    <script src="../shared/commands.js"></script>
+    <script src="pi.js"></script>
+  </body>
+</html>

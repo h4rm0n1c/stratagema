@@ -4,6 +4,7 @@ This branch pivots to a single, configurable macro stub and stream deck plugin p
 
 ## Layout
 - `macro_stub/` – Standalone stratagem macro helper with CLI flags.
+- `streamdeck_plugin/` – Stream Deck plugin scaffold (manifest, Property Inspector, packaging script).
 - `icons/` – Stratagem PNG set retained unchanged for reference builds and documentation.
 - `docs/` – Stream Deck plugin design notes and task planning (read these first) plus macro stub compatibility notes.
 - `archive/` – Snapshot of the original Rust multi-stub generator and helper scripts.
