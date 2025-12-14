@@ -1,6 +1,25 @@
-const { spawn } = require('child_process');
+const childProcess = require('child_process');
 const path = require('path');
 const { loadCommandsFromFile, resolveIconPath } = require('./shared/commands');
+
+function buildHelperArgs(code, settings = {}) {
+  const args = ['--code', code];
+  if (settings.useArrows) {
+    args.push('--arrows');
+  }
+  if (settings.skipCtrl) {
+    args.push('--no-ctrl');
+  }
+  return args;
+}
+
+function buildHelperSpawnOptions(platform = process.platform) {
+  return {
+    windowsHide: true,
+    detached: platform === 'win32',
+    stdio: ['ignore', 'ignore', 'pipe'],
+  };
+}
 
 const DEFAULT_SETTINGS = {
   stratagemId: '',
@@ -189,17 +208,10 @@ class StratagemaPlugin {
 
   invokeHelper(context, code, settings) {
     return new Promise((resolve, reject) => {
-      const args = ['--code', code];
-      if (settings.useArrows) {
-        args.push('--arrows');
-      }
-      if (settings.skipCtrl) {
-        args.push('--no-ctrl');
-      }
+      const args = buildHelperArgs(code, settings);
+      const spawnOptions = buildHelperSpawnOptions();
 
-      const child = spawn(this.helperPath, args, {
-        windowsHide: true,
-      });
+      const child = childProcess.spawn(this.helperPath, args, spawnOptions);
 
       let stderr = '';
 
@@ -259,6 +271,11 @@ function connectElgatoStreamDeckSocket(port, uuid, registerEvent) {
   plugin.connect(port, uuid, registerEvent);
 }
 
-module.exports = {
-  connectElgatoStreamDeckSocket,
-};
+if (typeof module !== 'undefined') {
+  module.exports = {
+    StratagemaPlugin,
+    buildHelperArgs,
+    buildHelperSpawnOptions,
+    connectElgatoStreamDeckSocket,
+  };
+}

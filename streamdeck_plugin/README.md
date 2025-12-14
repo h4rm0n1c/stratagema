@@ -27,7 +27,15 @@ Run from the repository root:
 bash streamdeck_plugin/scripts/package.sh
 ```
 
-The script copies the plugin sources plus the `icons/` directory into `dist/com.stratagema.sdPlugin` and creates `dist/com.stratagema.sdPlugin.streamDeckPlugin` for manual installation.
+The script copies the plugin sources, `commands.txt`, and the repo-wide `icons/` directory into `dist/com.stratagema.sdPlugin`. If a built helper exists under `macro_stub/target/release/stratagema_macro_helper[.exe]`, it is bundled into `helper/` before creating `dist/com.stratagema.sdPlugin.streamDeckPlugin` for manual installation.
+
+## Manual test checklist
+These steps mirror the validation matrix in the Stream Deck plugin design docs:
+
+- **Property Inspector dropdown** – Open the Property Inspector, ensure the stratagem dropdown populates from `commands.txt`, and verify custom code/cooldown fields sync back to the key when changed.
+- **Keypress → helper** – Press a configured key and confirm the helper launches with the expected code/flags (WASD vs. arrows, control toggle) and the key shows the standard OK indicator.
+- **Cooldown overlay/reset** – After a keypress, watch the countdown overlay decrease per the `commands.txt` cooldown; reload the plugin and confirm the countdown resets.
+- **TCP listener reconnect** – Run a listener for helper JSON events, trigger a stratagem, then restart the listener to ensure subsequent keypresses are still delivered after reconnecting.
 
 ## Helper lookup and errors
 - The plugin prefers a bundled helper at `helper/stratagema_macro_helper` inside the plugin bundle (platform extension applied as needed). A global setting `helperPath` can point to an external binary; if valid, it overrides the bundled copy.
