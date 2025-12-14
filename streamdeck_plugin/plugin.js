@@ -1,3 +1,4 @@
+const { spawn } = require('child_process');
 const path = require('path');
 const { loadCommandsFromFile, resolveIconPath } = require('./shared/commands');
 
@@ -15,6 +16,7 @@ class StratagemaPlugin {
     this.uuid = null;
     this.actionContexts = new Map();
     this.commands = this.loadCommands();
+    this.helperPath = this.resolveHelperPath();
   }
 
   connect(port, uuid, registerEvent) {
@@ -93,14 +95,27 @@ class StratagemaPlugin {
     const effectiveCode = settings.code || (command ? command.code : '');
     const cooldownSeconds = settings.cooldownSeconds || (command ? command.cooldownSeconds : 0);
 
+    if (!effectiveCode) {
+      this.log('No stratagem code configured; showing alert.');
+      this.send({ event: 'showAlert', context });
+      return;
+    }
+
     this.log(`Triggering stratagem: ${settings.stratagemId || 'custom'} (${effectiveCode})`);
 
-    this.send({ event: 'showOk', context });
-    this.sendToPropertyInspector(context, {
-      type: 'cooldownStarted',
-      cooldownSeconds,
-      startedAt: Date.now(),
-    });
+    this.invokeHelper(context, effectiveCode, settings)
+      .then(() => {
+        this.send({ event: 'showOk', context });
+        this.sendToPropertyInspector(context, {
+          type: 'cooldownStarted',
+          cooldownSeconds,
+          startedAt: Date.now(),
+        });
+      })
+      .catch((err) => {
+        this.log(`Helper error: ${err.message}`);
+        this.send({ event: 'showAlert', context });
+      });
   }
 
   onReceiveSettings(context, settings) {
@@ -164,6 +179,47 @@ class StratagemaPlugin {
     this.sendToPropertyInspector(context, {
       type: 'commands',
       commands: this.commands,
+    });
+  }
+
+  resolveHelperPath() {
+    const helperName = process.platform === 'win32' ? 'stratagema_macro_helper.exe' : 'stratagema_macro_helper';
+    return path.join(__dirname, 'helper', helperName);
+  }
+
+  invokeHelper(context, code, settings) {
+    return new Promise((resolve, reject) => {
+      const args = ['--code', code];
+      if (settings.useArrows) {
+        args.push('--arrows');
+      }
+      if (settings.skipCtrl) {
+        args.push('--no-ctrl');
+      }
+
+      const child = spawn(this.helperPath, args, {
+        windowsHide: true,
+      });
+
+      let stderr = '';
+
+      child.stderr.on('data', (data) => {
+        stderr += data.toString();
+      });
+
+      child.on('error', (err) => {
+        reject(err);
+      });
+
+      child.on('close', (code) => {
+        if (code === 0) {
+          resolve();
+          return;
+        }
+
+        const message = stderr.trim() || `Helper exited with code ${code}`;
+        reject(new Error(message));
+      });
     });
   }
 

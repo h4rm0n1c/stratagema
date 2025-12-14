@@ -55,10 +55,16 @@ function handleMessage(msg) {
 
 function handlePluginPayload(payload) {
   switch (payload.type) {
-    case 'commands':
+    case 'commands': {
       commands = payload.commands || [];
+      const updated = applySelectionDefaults();
       populateStratagems();
+      syncForm();
+      if (updated) {
+        setSettings();
+      }
       break;
+    }
     case 'syncSettings':
       settings = { ...DEFAULT_SETTINGS, ...(payload.settings || {}) };
       globalSettings = payload.globalSettings || {};
@@ -140,7 +146,39 @@ function populateStratagems() {
     select.appendChild(option);
   });
 
+  if (settings.stratagemId && !commands.find((cmd) => cmd.id === settings.stratagemId)) {
+    const preservedOption = document.createElement('option');
+    preservedOption.value = settings.stratagemId;
+    preservedOption.textContent = `${settings.stratagemId} (missing from commands.txt)`;
+    select.appendChild(preservedOption);
+  }
+
   select.value = settings.stratagemId || '';
+}
+
+function applySelectionDefaults() {
+  let updated = false;
+
+  if (!settings.stratagemId) {
+    return updated;
+  }
+
+  const selected = commands.find((cmd) => cmd.id === settings.stratagemId);
+  if (!selected) {
+    return updated;
+  }
+
+  if (!settings.code) {
+    settings.code = selected.code;
+    updated = true;
+  }
+
+  if (!settings.cooldownSeconds) {
+    settings.cooldownSeconds = selected.cooldownSeconds;
+    updated = true;
+  }
+
+  return updated;
 }
 
 function syncForm() {

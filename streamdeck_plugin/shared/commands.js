@@ -1,6 +1,6 @@
 const DEFAULT_ICON = 'icons/blank.png';
 
-function parseCommands(text) {
+function parseCommands(text, logger = console) {
   if (!text) {
     return [];
   }
@@ -9,22 +9,25 @@ function parseCommands(text) {
     .split(/\r?\n/)
     .map((line) => line.trim())
     .filter((line) => line.length > 0 && !line.startsWith('#'))
-    .map((line, index) => normalizeLine(line, index))
+    .map((line, index) => normalizeLine(line, index, logger))
     .filter(Boolean);
 }
 
-function normalizeLine(line, index) {
+function normalizeLine(line, index, logger = console) {
   const parts = line.split('|');
   if (parts.length < 3) {
+    logMalformed(logger, index, line, 'expected 3+ pipe-delimited fields');
     return null;
   }
 
-  const [idRaw, codeRaw, cooldownRaw] = parts;
+  const [idRaw, codeRaw, cooldownRaw, iconRaw] = parts;
   const id = idRaw.trim();
   const code = codeRaw.trim();
   const cooldownSeconds = Number.parseInt(cooldownRaw.trim(), 10);
+  const icon = (iconRaw && iconRaw.trim()) || DEFAULT_ICON;
 
   if (!id || !code || Number.isNaN(cooldownSeconds)) {
+    logMalformed(logger, index, line, 'missing id/code or invalid cooldown');
     return null;
   }
 
@@ -32,8 +35,14 @@ function normalizeLine(line, index) {
     id,
     code,
     cooldownSeconds,
-    icon: `icons/${id}.png`,
+    icon,
   };
+}
+
+function logMalformed(logger, index, line, reason) {
+  if (logger && typeof logger.warn === 'function') {
+    logger.warn(`commands.txt line ${index + 1}: ${reason} → "${line}"`);
+  }
 }
 
 function loadCommandsFromFile(filePath) {
