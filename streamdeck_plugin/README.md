@@ -28,3 +28,8 @@ bash streamdeck_plugin/scripts/package.sh
 ```
 
 The script copies the plugin sources plus the `icons/` directory into `dist/com.stratagema.sdPlugin` and creates `dist/com.stratagema.sdPlugin.streamDeckPlugin` for manual installation.
+
+## Helper lookup and errors
+- The plugin prefers a bundled helper at `helper/stratagema_macro_helper` inside the plugin bundle (platform extension applied as needed). A global setting `helperPath` can point to an external binary; if valid, it overrides the bundled copy.
+- If neither path is usable or the process fails to spawn/exit cleanly, the plugin logs the failure to the Stream Deck log and shows the standard alert state on the key that was pressed.
+- See `docs/plugin_helper_contract.md` for the complete invocation contract and stdout/stderr expectations.
