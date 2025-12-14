@@ -14,8 +14,8 @@ This checklist translates the planning decisions into concrete early tasks to po
    - Validate WASD vs. arrow key mapping parity with the current implementation and add a short README on Windows/Wine dependencies (`enigo`, 32-bit target if needed).
 
 2. **Define plugin ↔ helper invocation contract**
-   - Document how the plugin locates/ships the helper (bundled binary vs. external path) and what arguments it passes when a key is pressed.
-   - Specify error reporting (stdout/stderr capture) and a minimal JSON message format for future TCP broadcast reuse (e.g., `{"commandId":"machine_gun","code":"saswd","ts":<unix_ms>}`).
+   - Document how the plugin locates/ships the helper (bundled binary vs. external path) and what arguments it passes when a key is pressed in `docs/plugin_helper_contract.md`.
+   - Capture the helper CLI (`--code <sequence> [--arrows] [--no-ctrl] [--log-json]`), stdout/stderr expectations, and the JSON event shape used by the TCP broadcaster (e.g., `{"commandId":"machine_gun","code":"saswd","ts":<unix_ms>}`).
 
 3. **Parse `commands.txt` for Property Inspector and runtime**
    - Implement a parser that reads `commands.txt` at plugin startup to populate the Property Inspector dropdown (label, code, cooldown) and to supply the helper invocation data.
