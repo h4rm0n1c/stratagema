@@ -3,7 +3,7 @@
 This document describes how the Stream Deck plugin locates and invokes the macro helper binary, the CLI arguments it passes, and how output is handled. It also defines the JSON event shape reused by the TCP broadcaster.
 
 ## Helper discovery
-- **Bundled binary first**: the plugin expects a helper shipped inside the plugin bundle at `helper/stratagema_macro_helper` (with platform extension as needed, e.g., `.exe` on Windows). The path is resolved relative to the plugin root (e.g., `<bundle>/com.stratagema.sdPlugin/helper/stratagema_macro_helper`).
+- **Bundled binary first**: the plugin expects a helper shipped inside the plugin bundle at `helper/stratagema_macro_helper` (with platform extension as needed, e.g., `.exe` on Windows). The path is resolved relative to the plugin root (e.g., `<bundle>/com.stratagema.sdplugin.sdPlugin/helper/stratagema_macro_helper`).
 - **User-supplied override**: a global setting `helperPath` allows pointing to an external helper binary. When set, the plugin validates the file exists and is executable before using it.
 - **Fallback order**: use the external override if valid; otherwise, fall back to the bundled helper. If neither exists or is executable, the plugin surfaces a clear error in the Stream Deck logs and shows a per-key alert state.
 

@@ -3,7 +3,8 @@ set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 DIST_DIR="$ROOT_DIR/../dist"
-PLUGIN_ID="com.stratagema.sdPlugin"
+PLUGIN_UUID="com.stratagema.sdplugin"
+PLUGIN_ID="$PLUGIN_UUID.sdPlugin"
 BUILD_DIR="$DIST_DIR/$PLUGIN_ID"
 HELPER_BUILD_DIR="$ROOT_DIR/../macro_stub/target/release"
 HELPER_BASENAME="stratagema_macro_helper"
