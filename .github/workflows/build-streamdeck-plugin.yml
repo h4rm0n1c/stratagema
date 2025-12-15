@@ -17,6 +17,38 @@ jobs:
       - name: Build helper
         run: cargo build --release -p macro_stub
 
+      - name: Package helper artifact
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+
+          New-Item -ItemType Directory -Force -Path dist | Out-Null
+
+          $helperCandidates = @(
+            "macro_stub\\target\\release\\stratagema_macro_helper.exe",
+            "macro_stub\\target\\release\\macro_stub.exe"
+          )
+
+          $helperSource = $helperCandidates | Where-Object { Test-Path $_ } | Select-Object -First 1
+
+          if (-not $helperSource) {
+            throw "Helper executable not found at any of: $($helperCandidates -join ', ')"
+          }
+
+          $helperName = "stratagema_macro_helper.exe"
+          Copy-Item -Path $helperSource -Destination (Join-Path "dist" $helperName) -Force
+          Copy-Item -Path "macro_stub\\assets\\blank.ico" -Destination "dist" -Force
+          Copy-Item -Path "macro_stub\\README.md" -Destination "dist" -Force
+
+      - name: Upload helper artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: macro-stub-windows
+          path: |
+            dist/stratagema_macro_helper.exe
+            dist/blank.ico
+            dist/README.md
+
       - name: Package Stream Deck plugin
         shell: pwsh
         run: |
