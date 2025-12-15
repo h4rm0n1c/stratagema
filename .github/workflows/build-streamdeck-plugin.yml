@@ -1,0 +1,72 @@
+name: Build Stream Deck plugin
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  build-plugin:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Build helper
+        run: cargo build --release -p macro_stub
+
+      - name: Package Stream Deck plugin
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+
+          $root = Resolve-Path "streamdeck_plugin"
+          $dist = Join-Path $root "..\\dist"
+          $pluginId = "com.stratagema.sdPlugin"
+          $buildDir = Join-Path $dist $pluginId
+          $helperName = "stratagema_macro_helper.exe"
+          $helperTargetDir = Join-Path $buildDir "helper"
+          $archivePath = Join-Path $dist "$pluginId.streamDeckPlugin"
+
+          if (Test-Path $buildDir) {
+            Remove-Item $buildDir -Recurse -Force
+          }
+
+          New-Item -ItemType Directory -Path $buildDir -Force | Out-Null
+
+          Copy-Item -Path "$root\\*" -Destination $buildDir -Recurse -Force
+          Copy-Item -Path "icons\\*" -Destination (Join-Path $buildDir "icons") -Recurse -Force
+
+          New-Item -ItemType Directory -Path $helperTargetDir -Force | Out-Null
+
+          $helperCandidates = @(
+            "macro_stub\\target\\release\\stratagema_macro_helper.exe",
+            "macro_stub\\target\\release\\macro_stub.exe"
+          )
+
+          $helperSource = $helperCandidates | Where-Object { Test-Path $_ } | Select-Object -First 1
+
+          if ($null -ne $helperSource) {
+            $helperDest = Join-Path $helperTargetDir $helperName
+            Copy-Item $helperSource -Destination $helperDest -Force
+            Write-Host "Bundled helper: $helperSource -> $helperDest"
+          } else {
+            Write-Warning "Helper executable not found at any of: $($helperCandidates -join ', '); bundle will rely on external helper."
+          }
+
+          if (Test-Path $archivePath) {
+            Remove-Item $archivePath -Force
+          }
+
+          Compress-Archive -Path $buildDir -DestinationPath $archivePath
+          Write-Host "Created $archivePath"
+
+      - name: Upload Stream Deck plugin artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: stratagema-streamdeck-plugin
+          path: |
+            dist/com.stratagema.sdPlugin.streamDeckPlugin
+            dist/com.stratagema.sdPlugin/**
