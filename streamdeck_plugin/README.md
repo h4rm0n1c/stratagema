@@ -3,7 +3,7 @@
 This folder contains the initial scaffold for the Stratagema Stream Deck plugin described in the design docs (`docs/streamdeck_plugin_plan.md`). The structure is ready for Property Inspector wiring, helper invocation, and packaging into a `.streamDeckPlugin` bundle.
 
 ## Layout
-- `manifest.json` – SDK v6 manifest for the `com.stratagema.stratagem.action` key.
+- `manifest.json` – SDK v6 manifest for the `com.stratagema.sdplugin.stratagem` key.
 - `plugin.js` – Plugin runtime script that connects to the Stream Deck websocket, hydrates settings, and relays stratagem metadata to the Property Inspector.
 - `property-inspector/` – HTML/CSS/JS for the per-key and global settings UI.
 - `shared/commands.js` – Shared parser for `commands.txt` with a blank-icon fallback.
@@ -27,7 +27,7 @@ Run from the repository root:
 bash streamdeck_plugin/scripts/package.sh
 ```
 
-The script copies the plugin sources, `commands.txt`, and the repo-wide `icons/` directory into `dist/com.stratagema.sdPlugin`. If a built helper exists under `macro_stub/target/release/stratagema_macro_helper[.exe]`, it is bundled into `helper/` before creating `dist/com.stratagema.sdPlugin.streamDeckPlugin` for manual installation.
+The script first builds the helper (`cargo build --release` from `macro_stub`; override the cargo target with `HELPER_TARGET=<triple>` when cross-compiling), then copies the plugin sources, `commands.txt`, and the repo-wide `icons/` directory into `dist/com.stratagema.sdplugin.sdPlugin`. The freshly built helper is bundled into `helper/` before creating `dist/com.stratagema.sdplugin.sdPlugin.streamDeckPlugin` for manual installation.
 
 ## Manual test checklist
 These steps mirror the validation matrix in the Stream Deck plugin design docs:
