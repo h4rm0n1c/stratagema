@@ -26,7 +26,7 @@ jobs:
           $dist = Join-Path $root "..\\dist"
           $pluginId = "com.stratagema.sdPlugin"
           $buildDir = Join-Path $dist $pluginId
-          $helperSource = "macro_stub\\target\\release\\stratagema_macro_helper.exe"
+          $helperName = "stratagema_macro_helper.exe"
           $helperTargetDir = Join-Path $buildDir "helper"
           $archivePath = Join-Path $dist "$pluginId.streamDeckPlugin"
 
@@ -40,11 +40,20 @@ jobs:
           Copy-Item -Path "icons\\*" -Destination (Join-Path $buildDir "icons") -Recurse -Force
 
           New-Item -ItemType Directory -Path $helperTargetDir -Force | Out-Null
-          if (Test-Path $helperSource) {
-            Copy-Item $helperSource -Destination $helperTargetDir -Force
-            Write-Host "Bundled helper: $helperSource"
+
+          $helperCandidates = @(
+            "macro_stub\\target\\release\\stratagema_macro_helper.exe",
+            "macro_stub\\target\\release\\macro_stub.exe"
+          )
+
+          $helperSource = $helperCandidates | Where-Object { Test-Path $_ } | Select-Object -First 1
+
+          if ($null -ne $helperSource) {
+            $helperDest = Join-Path $helperTargetDir $helperName
+            Copy-Item $helperSource -Destination $helperDest -Force
+            Write-Host "Bundled helper: $helperSource -> $helperDest"
           } else {
-            Write-Warning "Helper executable not found at $helperSource; bundle will rely on external helper."
+            Write-Warning "Helper executable not found at any of: $($helperCandidates -join ', '); bundle will rely on external helper."
           }
 
           if (Test-Path $archivePath) {
