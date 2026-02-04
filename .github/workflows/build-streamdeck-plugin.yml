@@ -58,7 +58,7 @@ jobs:
 
           $root = Resolve-Path "streamdeck_plugin"
           $dist = Join-Path $root "..\\dist"
-          $pluginId = "com.stratagema.sdPlugin"
+          $pluginId = "com.stratagema.sdplugin.sdPlugin"
           $buildDir = Join-Path $dist $pluginId
           $helperName = "stratagema_macro_helper.exe"
           $helperTargetDir = Join-Path $buildDir "helper"
@@ -71,6 +71,7 @@ jobs:
           New-Item -ItemType Directory -Path $buildDir -Force | Out-Null
 
           Copy-Item -Path "$root\\*" -Destination $buildDir -Recurse -Force
+          New-Item -ItemType Directory -Path (Join-Path $buildDir "icons") -Force | Out-Null
           Copy-Item -Path "icons\\*" -Destination (Join-Path $buildDir "icons") -Recurse -Force
 
           New-Item -ItemType Directory -Path $helperTargetDir -Force | Out-Null
@@ -104,5 +105,5 @@ jobs:
         with:
           name: stratagema-streamdeck-plugin
           path: |
-            dist/com.stratagema.sdPlugin.streamDeckPlugin
-            dist/com.stratagema.sdPlugin/**
+            dist/com.stratagema.sdplugin.sdPlugin.streamDeckPlugin
+            dist/com.stratagema.sdplugin.sdPlugin/**

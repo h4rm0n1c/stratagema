@@ -73,6 +73,7 @@ class StratagemaPlugin {
     try {
       return loadCommandsFromFile(commandsPath);
     } catch (err) {
+      this.log(`Failed to load commands.txt: ${err.message}`);
       return [];
     }
   }
@@ -108,7 +109,7 @@ class StratagemaPlugin {
       settings,
       state: {},
     });
-    if (this.applyCommandDefaults(settings)) {
+    if (this.applyCommandDefaults(context, settings)) {
       this.setSettings(context, settings);
     }
     this.updateKeyImage(context, settings.stratagemId);
@@ -119,6 +120,7 @@ class StratagemaPlugin {
     if (payload && payload.type === 'refreshCommands') {
       this.commands = this.loadCommands();
       this.pushCommandsToPropertyInspector(context);
+      this.refreshCommandDefaults();
     }
   }
 
@@ -157,7 +159,7 @@ class StratagemaPlugin {
   onReceiveSettings(context, settings) {
     const ctx = this.ensureContext(context, settings);
     ctx.settings = this.mergeSettings(settings);
-    if (this.applyCommandDefaults(ctx.settings)) {
+    if (this.applyCommandDefaults(context, ctx.settings)) {
       this.setSettings(context, ctx.settings);
     }
     this.updateKeyImage(context, ctx.settings.stratagemId);
@@ -194,24 +196,38 @@ class StratagemaPlugin {
     };
   }
 
-  applyCommandDefaults(settings) {
+  applyCommandDefaults(context, settings) {
+    const ctx = this.ensureContext(context, settings);
+    const state = ctx.state || {};
     if (!settings.stratagemId) {
+      state.lastCommandId = null;
+      ctx.state = state;
       return false;
     }
+
     const command = this.getCommand(settings.stratagemId);
     if (!command) {
       return false;
     }
 
+    const previousCommand = state.lastCommandId ? this.getCommand(state.lastCommandId) : null;
+    const codeIsDefault = !settings.code || (previousCommand && settings.code === previousCommand.code);
+    const cooldownIsDefault =
+      !settings.cooldownSeconds ||
+      (previousCommand && settings.cooldownSeconds === previousCommand.cooldownSeconds);
+
     let updated = false;
-    if (!settings.code) {
+    if (codeIsDefault) {
       settings.code = command.code;
       updated = true;
     }
-    if (!settings.cooldownSeconds) {
+    if (cooldownIsDefault) {
       settings.cooldownSeconds = command.cooldownSeconds;
       updated = true;
     }
+
+    state.lastCommandId = settings.stratagemId;
+    ctx.state = state;
     return updated;
   }
 
@@ -239,6 +255,15 @@ class StratagemaPlugin {
     this.sendToPropertyInspector(context, {
       type: 'commands',
       commands: this.commands,
+    });
+  }
+
+  refreshCommandDefaults() {
+    this.actionContexts.forEach((ctx, context) => {
+      if (this.applyCommandDefaults(context, ctx.settings)) {
+        this.setSettings(context, ctx.settings);
+      }
+      this.updateKeyImage(context, ctx.settings.stratagemId);
     });
   }
 
