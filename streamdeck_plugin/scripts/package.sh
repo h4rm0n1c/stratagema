@@ -5,6 +5,7 @@ ROOT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 DIST_DIR="$ROOT_DIR/../dist"
 PLUGIN_UUID="com.stratagema.sdplugin"
 PLUGIN_ID="$PLUGIN_UUID.sdPlugin"
+ARCHIVE_NAME="$PLUGIN_UUID.streamDeckPlugin"
 BUILD_DIR="$DIST_DIR/$PLUGIN_ID"
 HELPER_TARGET="${HELPER_TARGET:-}"
 HELPER_BUILD_DIRS=(
@@ -57,7 +58,7 @@ if [[ "$HELPER_COPIED" != true ]]; then
 fi
 
 pushd "$DIST_DIR" >/dev/null
-zip -r "$PLUGIN_ID.streamDeckPlugin" "$PLUGIN_ID" >/dev/null
+zip -r "$ARCHIVE_NAME" "$PLUGIN_ID" >/dev/null
 popd >/dev/null
 
-echo "Created $DIST_DIR/$PLUGIN_ID.streamDeckPlugin"
+echo "Created $DIST_DIR/$ARCHIVE_NAME"
