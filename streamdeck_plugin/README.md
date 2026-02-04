@@ -27,7 +27,7 @@ Run from the repository root:
 bash streamdeck_plugin/scripts/package.sh
 ```
 
-The script first builds the helper (`cargo build --release` from `macro_stub`; override the cargo target with `HELPER_TARGET=<triple>` when cross-compiling), then copies the plugin sources, `commands.txt`, and the repo-wide `icons/` directory into `dist/com.stratagema.sdplugin.sdPlugin`. The freshly built helper is bundled into `helper/` before creating `dist/com.stratagema.sdplugin.sdPlugin.streamDeckPlugin` for manual installation.
+The script first builds the helper (`cargo build --release` from `macro_stub`; override the cargo target with `HELPER_TARGET=<triple>` when cross-compiling), then copies the plugin sources, `commands.txt`, and the repo-wide `icons/` directory into `dist/com.stratagema.sdplugin.sdPlugin`. The freshly built helper is bundled into `helper/` (renamed to `stratagema_macro_helper` if the cargo output is `macro_stub`) before creating `dist/com.stratagema.sdplugin.sdPlugin.streamDeckPlugin` for manual installation.
 
 ## Manual test checklist
 These steps mirror the validation matrix in the Stream Deck plugin design docs:

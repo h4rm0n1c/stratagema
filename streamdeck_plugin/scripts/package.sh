@@ -11,7 +11,11 @@ HELPER_BUILD_DIRS=(
   "$ROOT_DIR/../macro_stub/target${HELPER_TARGET:+/}$HELPER_TARGET/release"
   "$ROOT_DIR/../target${HELPER_TARGET:+/}$HELPER_TARGET/release"
 )
-HELPER_BASENAME="stratagema_macro_helper"
+HELPER_OUTPUT_NAME="stratagema_macro_helper"
+HELPER_BASENAMES=(
+  "stratagema_macro_helper"
+  "macro_stub"
+)
 
 pushd "$ROOT_DIR/../macro_stub" >/dev/null
 if [[ -n "$HELPER_TARGET" ]]; then
@@ -33,14 +37,17 @@ mkdir -p "$BUILD_DIR/helper"
 
 HELPER_COPIED=false
 for BUILD_DIR_CANDIDATE in "${HELPER_BUILD_DIRS[@]}"; do
-  for EXT in "" ".exe"; do
-    CANDIDATE="$BUILD_DIR_CANDIDATE/${HELPER_BASENAME}${EXT}"
-    if [[ -f "$CANDIDATE" ]]; then
-      cp "$CANDIDATE" "$BUILD_DIR/helper/"
-      echo "Bundled helper: $CANDIDATE"
-      HELPER_COPIED=true
-      break 2
-    fi
+  for BASENAME in "${HELPER_BASENAMES[@]}"; do
+    for EXT in "" ".exe"; do
+      CANDIDATE="$BUILD_DIR_CANDIDATE/${BASENAME}${EXT}"
+      if [[ -f "$CANDIDATE" ]]; then
+        DESTINATION="$BUILD_DIR/helper/${HELPER_OUTPUT_NAME}${EXT}"
+        cp "$CANDIDATE" "$DESTINATION"
+        echo "Bundled helper: $CANDIDATE -> $DESTINATION"
+        HELPER_COPIED=true
+        break 3
+      fi
+    done
   done
 done
 
