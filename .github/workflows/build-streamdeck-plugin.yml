@@ -1,7 +1,6 @@
 name: Build Stream Deck plugin
 
 on:
-  push:
   pull_request:
 
 jobs:
