@@ -170,13 +170,13 @@ class StratagemaPlugin {
   }
 
   onPropertyInspectorDidAppear(context) {
-    this.pushCommandsToPropertyInspector(context);
     const ctx = this.ensureContext(context, {});
     this.sendToPropertyInspector(context, {
       type: 'syncSettings',
       settings: ctx.settings,
       globalSettings: this.globalSettings || {},
     });
+    this.pushCommandsToPropertyInspector(context);
   }
 
   ensureContext(context, settings) {
