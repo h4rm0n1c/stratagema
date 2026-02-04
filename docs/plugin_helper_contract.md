@@ -1,6 +1,6 @@
 # Plugin ↔ Helper Contract
 
-This document describes how the Stream Deck plugin locates and invokes the macro helper binary, the CLI arguments it passes, and how output is handled. It also defines the JSON event shape reused by the TCP broadcaster.
+This document describes how the Stream Deck plugin locates and invokes the macro helper binary, the CLI arguments it passes, and how output is handled. It also defines the TCP broadcast payload format.
 
 ## Helper discovery
 - **Bundled binary first**: the plugin expects a helper shipped inside the plugin bundle at `helper/stratagema_macro_helper` (with platform extension as needed, e.g., `.exe` on Windows). The path is resolved relative to the plugin root (e.g., `<bundle>/com.stratagema.sdplugin.sdPlugin/helper/stratagema_macro_helper`).
@@ -26,15 +26,15 @@ The plugin passes `--code` and appends `--arrows`/`--no-ctrl` based on per-key s
 - **Stderr**: human-readable errors (e.g., invalid code, missing keyboard permissions). The plugin captures stderr and surfaces the first line in Stream Deck logs and as a per-key alert tooltip when available.
 - **Exit codes**: `0` on success; non-zero triggers the plugin's alert UI and log entry. The plugin also logs when the process cannot be spawned (missing binary/permissions).
 
-## Minimal JSON event shape
-Helper invocations are mirrored to the TCP broadcaster using the same structure to keep telemetry aligned:
+## TCP broadcast line format
+Helper invocations are mirrored to the TCP broadcaster as a single-line payload so lightweight listeners can parse it quickly:
 
-```json
-{"commandId":"machine_gun","code":"saswd","ts":1700000000000}
+```
+[STRATAGEM][NAME][COOLDOWN]
 ```
 
-- `commandId`: stable ID from `commands.txt`.
-- `code`: the exact code string sent to the helper.
-- `ts`: Unix epoch milliseconds when the command was triggered.
+- `STRATAGEM`: the exact code string sent to the helper (e.g., `saswd`).
+- `NAME`: stable ID from `commands.txt` (or `custom` if none was selected).
+- `COOLDOWN`: cooldown seconds for the stratagem (numeric).
 
-Additional fields (e.g., `flags` or `source`) may be added later, but receivers should treat unknown fields as optional to remain forward-compatible.
+Each payload is terminated by a newline (`\n`) and is sent immediately after a successful helper invocation.

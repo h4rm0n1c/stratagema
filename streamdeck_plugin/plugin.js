@@ -1,4 +1,5 @@
 const childProcess = require('child_process');
+const net = require('net');
 const path = require('path');
 const { loadCommandsFromFile, resolveIconPath } = require('./shared/commands');
 
@@ -29,6 +30,12 @@ const DEFAULT_SETTINGS = {
   skipCtrl: false,
 };
 
+const DEFAULT_GLOBAL_SETTINGS = {
+  tcpEnabled: false,
+  tcpWhitelist: '127.0.0.1',
+  tcpPort: 7777,
+};
+
 class StratagemaPlugin {
   constructor() {
     this.websocket = null;
@@ -36,6 +43,10 @@ class StratagemaPlugin {
     this.actionContexts = new Map();
     this.commands = this.loadCommands();
     this.helperPath = this.resolveHelperPath();
+    this.globalSettings = { ...DEFAULT_GLOBAL_SETTINGS };
+    this.tcpServer = null;
+    this.tcpClients = new Set();
+    this.tcpPort = null;
   }
 
   connect(port, uuid, registerEvent) {
@@ -44,6 +55,7 @@ class StratagemaPlugin {
 
     this.websocket.onopen = () => {
       this.send({ event: registerEvent, uuid });
+      this.send({ event: 'getGlobalSettings', context: uuid });
     };
 
     this.websocket.onmessage = (evt) => {
@@ -96,6 +108,9 @@ class StratagemaPlugin {
       settings,
       state: {},
     });
+    if (this.applyCommandDefaults(settings)) {
+      this.setSettings(context, settings);
+    }
     this.updateKeyImage(context, settings.stratagemId);
     this.pushCommandsToPropertyInspector(context);
   }
@@ -113,6 +128,7 @@ class StratagemaPlugin {
     const command = this.getCommand(settings.stratagemId);
     const effectiveCode = settings.code || (command ? command.code : '');
     const cooldownSeconds = settings.cooldownSeconds || (command ? command.cooldownSeconds : 0);
+    const commandName = command ? command.id : settings.stratagemId || 'custom';
 
     if (!effectiveCode) {
       this.log('No stratagem code configured; showing alert.');
@@ -130,6 +146,7 @@ class StratagemaPlugin {
           cooldownSeconds,
           startedAt: Date.now(),
         });
+        this.broadcastTcp(`[${effectiveCode}][${commandName}][${cooldownSeconds}]`);
       })
       .catch((err) => {
         this.log(`Helper error: ${err.message}`);
@@ -140,11 +157,14 @@ class StratagemaPlugin {
   onReceiveSettings(context, settings) {
     const ctx = this.ensureContext(context, settings);
     ctx.settings = this.mergeSettings(settings);
+    if (this.applyCommandDefaults(ctx.settings)) {
+      this.setSettings(context, ctx.settings);
+    }
     this.updateKeyImage(context, ctx.settings.stratagemId);
   }
 
   onReceiveGlobalSettings(settings) {
-    this.globalSettings = settings || {};
+    this.applyGlobalSettings(settings || {});
   }
 
   onPropertyInspectorDidAppear(context) {
@@ -174,6 +194,27 @@ class StratagemaPlugin {
     };
   }
 
+  applyCommandDefaults(settings) {
+    if (!settings.stratagemId) {
+      return false;
+    }
+    const command = this.getCommand(settings.stratagemId);
+    if (!command) {
+      return false;
+    }
+
+    let updated = false;
+    if (!settings.code) {
+      settings.code = command.code;
+      updated = true;
+    }
+    if (!settings.cooldownSeconds) {
+      settings.cooldownSeconds = command.cooldownSeconds;
+      updated = true;
+    }
+    return updated;
+  }
+
   getCommand(id) {
     if (!id) {
       return null;
@@ -198,6 +239,14 @@ class StratagemaPlugin {
     this.sendToPropertyInspector(context, {
       type: 'commands',
       commands: this.commands,
+    });
+  }
+
+  setSettings(context, settings) {
+    this.send({
+      event: 'setSettings',
+      context,
+      payload: settings,
     });
   }
 
@@ -261,6 +310,109 @@ class StratagemaPlugin {
       payload: {
         message,
       },
+    });
+  }
+
+  applyGlobalSettings(settings) {
+    this.globalSettings = {
+      ...DEFAULT_GLOBAL_SETTINGS,
+      ...settings,
+    };
+    this.reconfigureTcpServer();
+  }
+
+  reconfigureTcpServer() {
+    if (!this.globalSettings.tcpEnabled) {
+      this.stopTcpServer();
+      return;
+    }
+
+    const port = Number.parseInt(this.globalSettings.tcpPort, 10);
+    if (!port) {
+      this.stopTcpServer();
+      return;
+    }
+
+    if (this.tcpServer && this.tcpPort === port) {
+      return;
+    }
+
+    this.stopTcpServer();
+    this.startTcpServer(port);
+  }
+
+  startTcpServer(port) {
+    this.tcpPort = port;
+    this.tcpServer = net.createServer((socket) => {
+      const remoteAddress = socket.remoteAddress;
+      if (!this.isAllowedAddress(remoteAddress)) {
+        socket.destroy();
+        return;
+      }
+
+      this.tcpClients.add(socket);
+      socket.on('close', () => {
+        this.tcpClients.delete(socket);
+      });
+      socket.on('error', () => {
+        this.tcpClients.delete(socket);
+      });
+    });
+
+    this.tcpServer.on('error', (err) => {
+      this.log(`TCP server error: ${err.message}`);
+    });
+
+    this.tcpServer.listen(port, '0.0.0.0', () => {
+      this.log(`TCP server listening on port ${port}`);
+    });
+  }
+
+  stopTcpServer() {
+    this.tcpClients.forEach((socket) => {
+      socket.destroy();
+    });
+    this.tcpClients.clear();
+    if (this.tcpServer) {
+      this.tcpServer.close();
+      this.tcpServer = null;
+    }
+    this.tcpPort = null;
+  }
+
+  isAllowedAddress(address) {
+    if (!address) {
+      return false;
+    }
+    let normalized = address;
+    if (normalized.startsWith('::ffff:')) {
+      normalized = normalized.slice('::ffff:'.length);
+    }
+    if (normalized === '::1') {
+      normalized = '127.0.0.1';
+    }
+
+    const whitelist = (this.globalSettings.tcpWhitelist || '')
+      .split(',')
+      .map((entry) => entry.trim())
+      .filter(Boolean);
+    if (whitelist.length === 0) {
+      return false;
+    }
+    return whitelist.includes(normalized);
+  }
+
+  broadcastTcp(message) {
+    if (!this.tcpServer || !this.globalSettings.tcpEnabled) {
+      return;
+    }
+    const payload = `${message}\n`;
+    this.tcpClients.forEach((socket) => {
+      if (socket.destroyed) {
+        this.tcpClients.delete(socket);
+        return;
+      }
+      socket.write(payload);
     });
   }
 }
