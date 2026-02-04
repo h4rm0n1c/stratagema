@@ -9,6 +9,7 @@ const DEFAULT_SETTINGS = {
 let websocket = null;
 let uuid = null;
 let actionInfo = null;
+let actionContext = null;
 let settings = { ...DEFAULT_SETTINGS };
 let globalSettings = {};
 let commands = [];
@@ -16,6 +17,7 @@ let commands = [];
 function connectElgatoStreamDeckSocket(port, inUUID, registerEvent, info, inActionInfo) {
   uuid = inUUID;
   actionInfo = JSON.parse(inActionInfo || '{}');
+  actionContext = actionInfo.context || uuid;
   websocket = new WebSocket(`ws://127.0.0.1:${port}`);
 
   websocket.onopen = () => {
@@ -27,6 +29,7 @@ function connectElgatoStreamDeckSocket(port, inUUID, registerEvent, info, inActi
     );
     requestSettings();
     requestGlobalSettings();
+    sendToPlugin({ type: 'refreshCommands' });
   };
 
   websocket.onmessage = (evt) => {
@@ -83,7 +86,7 @@ function requestSettings() {
   websocket.send(
     JSON.stringify({
       event: 'getSettings',
-      context: uuid,
+      context: actionContext,
     })
   );
 }
@@ -92,7 +95,7 @@ function requestGlobalSettings() {
   websocket.send(
     JSON.stringify({
       event: 'getGlobalSettings',
-      context: uuid,
+      context: actionContext,
     })
   );
 }
@@ -101,7 +104,7 @@ function setSettings() {
   websocket.send(
     JSON.stringify({
       event: 'setSettings',
-      context: uuid,
+      context: actionContext,
       payload: settings,
     })
   );
@@ -111,7 +114,7 @@ function setGlobalSettings() {
   websocket.send(
     JSON.stringify({
       event: 'setGlobalSettings',
-      context: uuid,
+      context: actionContext,
       payload: globalSettings,
     })
   );
@@ -121,7 +124,7 @@ function sendToPlugin(payload) {
   websocket.send(
     JSON.stringify({
       event: 'sendToPlugin',
-      context: uuid,
+      context: actionContext,
       payload,
     })
   );
