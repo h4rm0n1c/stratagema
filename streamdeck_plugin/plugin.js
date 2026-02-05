@@ -120,6 +120,7 @@ class StratagemaPlugin {
     if (payload && payload.type === 'refreshCommands') {
       this.commands = this.loadCommands();
       this.pushCommandsToPropertyInspector(context);
+      this.pushCommandsToAllInspectors();
       this.refreshCommandDefaults();
     }
   }
@@ -255,6 +256,12 @@ class StratagemaPlugin {
     this.sendToPropertyInspector(context, {
       type: 'commands',
       commands: this.commands,
+    });
+  }
+
+  pushCommandsToAllInspectors() {
+    this.actionContexts.forEach((_ctx, context) => {
+      this.pushCommandsToPropertyInspector(context);
     });
   }
 
