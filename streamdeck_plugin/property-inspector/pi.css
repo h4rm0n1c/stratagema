@@ -17,3 +17,25 @@
 .sdpi-item + .pi-section-title {
   margin-top: 8px;
 }
+
+.pi-commands-status-row {
+  align-items: flex-start;
+}
+
+.pi-commands-status {
+  font-size: 11px;
+  line-height: 1.35;
+  white-space: normal;
+}
+
+.pi-commands-status--pending {
+  opacity: 0.75;
+}
+
+.pi-commands-status--success {
+  color: #7ad27a;
+}
+
+.pi-commands-status--warning {
+  color: #e2b168;
+}

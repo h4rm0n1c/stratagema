@@ -1,7 +1,8 @@
 const childProcess = require('child_process');
 const net = require('net');
 const path = require('path');
-const { loadCommandsFromFile, resolveIconPath } = require('./shared/commands');
+const fs = require('fs');
+const { parseCommands, resolveIconPath } = require('./shared/commands');
 
 function buildHelperArgs(code, settings = {}) {
   const args = ['--code', code];
@@ -41,7 +42,9 @@ class StratagemaPlugin {
     this.websocket = null;
     this.uuid = null;
     this.actionContexts = new Map();
-    this.commands = this.loadCommands();
+    const commandsState = this.loadCommands();
+    this.commands = commandsState.commands;
+    this.commandsStatus = commandsState;
     this.helperPath = this.resolveHelperPath();
     this.globalSettings = { ...DEFAULT_GLOBAL_SETTINGS };
     this.tcpServer = null;
@@ -70,11 +73,31 @@ class StratagemaPlugin {
 
   loadCommands() {
     const commandsPath = path.join(__dirname, 'commands.txt');
+    const baseStatus = {
+      commands: [],
+      sourcePath: commandsPath,
+      error: null,
+      lineCount: 0,
+      validCount: 0,
+    };
+
     try {
-      return loadCommandsFromFile(commandsPath);
+      const contents = fs.readFileSync(commandsPath, 'utf8');
+      const lineCount = contents.split(/\r?\n/).filter((line) => line.trim().length > 0).length;
+      const commands = parseCommands(contents);
+
+      return {
+        ...baseStatus,
+        commands,
+        lineCount,
+        validCount: commands.length,
+      };
     } catch (err) {
       this.log(`Failed to load commands.txt: ${err.message}`);
-      return [];
+      return {
+        ...baseStatus,
+        error: err.message,
+      };
     }
   }
 
@@ -118,9 +141,12 @@ class StratagemaPlugin {
 
   onSendToPlugin(context, payload) {
     if (payload && payload.type === 'refreshCommands') {
-      this.commands = this.loadCommands();
+      this.commandsStatus = this.loadCommands();
+      this.commands = this.commandsStatus.commands;
       this.pushCommandsToPropertyInspector(context);
+      this.pushCommandsStatusToPropertyInspector(context);
       this.pushCommandsToAllInspectors();
+      this.pushCommandsStatusToAllInspectors();
       this.refreshCommandDefaults();
     }
   }
@@ -178,6 +204,7 @@ class StratagemaPlugin {
       globalSettings: this.globalSettings || {},
     });
     this.pushCommandsToPropertyInspector(context);
+    this.pushCommandsStatusToPropertyInspector(context);
   }
 
   ensureContext(context, settings) {
@@ -259,9 +286,27 @@ class StratagemaPlugin {
     });
   }
 
+  pushCommandsStatusToPropertyInspector(context) {
+    this.sendToPropertyInspector(context, {
+      type: 'commandsStatus',
+      status: {
+        sourcePath: this.commandsStatus.sourcePath,
+        error: this.commandsStatus.error,
+        lineCount: this.commandsStatus.lineCount,
+        validCount: this.commandsStatus.validCount,
+      },
+    });
+  }
+
   pushCommandsToAllInspectors() {
     this.actionContexts.forEach((_ctx, context) => {
       this.pushCommandsToPropertyInspector(context);
+    });
+  }
+
+  pushCommandsStatusToAllInspectors() {
+    this.actionContexts.forEach((_ctx, context) => {
+      this.pushCommandsStatusToPropertyInspector(context);
     });
   }
 

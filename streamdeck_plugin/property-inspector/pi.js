@@ -13,6 +13,7 @@ let actionContext = null;
 let settings = { ...DEFAULT_SETTINGS };
 let globalSettings = {};
 let commands = [];
+let commandsStatus = null;
 
 function connectElgatoStreamDeckSocket(port, inUUID, registerEvent, info, inActionInfo) {
   uuid = inUUID;
@@ -68,6 +69,10 @@ function handlePluginPayload(payload) {
       }
       break;
     }
+    case 'commandsStatus':
+      commandsStatus = payload.status || null;
+      renderCommandsStatus();
+      break;
     case 'syncSettings':
       settings = { ...DEFAULT_SETTINGS, ...(payload.settings || {}) };
       globalSettings = payload.globalSettings || {};
@@ -250,7 +255,44 @@ function attachListeners() {
   });
 }
 
+function renderCommandsStatus() {
+  const statusEl = document.getElementById('commands-status');
+  if (!statusEl) {
+    return;
+  }
+
+  statusEl.classList.remove(
+    'pi-commands-status--pending',
+    'pi-commands-status--success',
+    'pi-commands-status--warning'
+  );
+
+  if (!commandsStatus) {
+    statusEl.textContent = 'Waiting for commands.txt status...';
+    statusEl.classList.add('pi-commands-status--pending');
+    return;
+  }
+
+  const sourcePath = commandsStatus.sourcePath || 'commands.txt';
+  if (commandsStatus.error) {
+    statusEl.textContent = `Unable to load ${sourcePath}: ${commandsStatus.error}`;
+    statusEl.classList.add('pi-commands-status--warning');
+    return;
+  }
+
+  const validCount = Number.parseInt(commandsStatus.validCount, 10) || 0;
+  if (validCount === 0) {
+    statusEl.textContent = `Parsed 0 valid commands from ${sourcePath}. Expected format: id|code|cooldownSeconds`;
+    statusEl.classList.add('pi-commands-status--warning');
+    return;
+  }
+
+  statusEl.textContent = `Loaded ${validCount} command${validCount === 1 ? '' : 's'} from ${sourcePath}.`;
+  statusEl.classList.add('pi-commands-status--success');
+}
+
 window.addEventListener('DOMContentLoaded', () => {
   attachListeners();
   populateStratagems();
+  renderCommandsStatus();
 });
