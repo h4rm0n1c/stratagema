@@ -4,51 +4,101 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Stratagema Stratagem</title>
+    <link
+      rel="stylesheet"
+      href="https://cdn.jsdelivr.net/gh/barraider/streamdeck-easypi@latest/src/sdpi.css"
+    />
+    <script src="https://cdn.jsdelivr.net/gh/barraider/streamdeck-easypi@latest/src/sdtools.common.js"></script>
     <link rel="stylesheet" href="pi.css" />
   </head>
   <body>
-    <main class="pi">
-      <section>
-        <h2>Stratagem</h2>
-        <label>
-          <span>Selection</span>
-          <select id="stratagem-select"></select>
-        </label>
-        <label>
-          <span>Code override</span>
-          <input id="code" type="text" placeholder="saswd" />
-        </label>
-        <label>
-          <span>Cooldown (seconds)</span>
-          <input id="cooldown" type="number" min="0" step="1" />
-        </label>
-        <label class="inline">
-          <input id="use-arrows" type="checkbox" />
-          <span>Use arrow keys instead of WASD</span>
-        </label>
-        <label class="inline">
-          <input id="skip-ctrl" type="checkbox" />
-          <span>Skip hold-CTRL modifier</span>
-        </label>
-        <button id="refresh-commands" type="button">Reload commands.txt</button>
-      </section>
+    <div class="sdpi-wrapper">
+      <div class="sdpi-item pi-section-title">
+        <div class="sdpi-item-label">Stratagem</div>
+        <div class="sdpi-item-value"></div>
+      </div>
+      <div class="sdpi-item">
+        <div class="sdpi-item-label">Selection</div>
+        <select class="sdpi-item-value sdProperty" id="stratagem-select"></select>
+      </div>
+      <div class="sdpi-item">
+        <div class="sdpi-item-label">Code override</div>
+        <input class="sdpi-item-value sdProperty" id="code" type="text" placeholder="saswd" />
+      </div>
+      <div class="sdpi-item">
+        <div class="sdpi-item-label">Cooldown (seconds)</div>
+        <input
+          class="sdpi-item-value sdProperty"
+          id="cooldown"
+          type="number"
+          min="0"
+          step="1"
+        />
+      </div>
+      <div type="checkbox" class="sdpi-item">
+        <div class="sdpi-item-label">Input mode</div>
+        <div class="sdpi-item-value">
+          <input id="use-arrows" type="checkbox" class="sdpi-item-value sdCheckbox sdProperty" />
+          <label for="use-arrows" class="sdpi-item-label">
+            <span></span>Use arrow keys instead of WASD
+          </label>
+        </div>
+      </div>
+      <div type="checkbox" class="sdpi-item">
+        <div class="sdpi-item-label">Modifiers</div>
+        <div class="sdpi-item-value">
+          <input id="skip-ctrl" type="checkbox" class="sdpi-item-value sdCheckbox sdProperty" />
+          <label for="skip-ctrl" class="sdpi-item-label">
+            <span></span>Skip hold-CTRL modifier
+          </label>
+        </div>
+      </div>
+      <div class="sdpi-item">
+        <div class="sdpi-item-label">Commands</div>
+        <button id="refresh-commands" class="sdpi-item-value" type="button">
+          Reload commands.txt
+        </button>
+      </div>
+      <div class="sdpi-item">
+        <div class="sdpi-item-label">Status</div>
+        <div class="sdpi-item-value pi-status" id="commands-status">Waiting for commands...</div>
+      </div>
 
-      <section>
-        <h2>TCP broadcast (global)</h2>
-        <label class="inline">
-          <input id="tcp-enabled" type="checkbox" />
-          <span>Enable memen_demon listener</span>
-        </label>
-        <label>
-          <span>Whitelist</span>
-          <input id="tcp-whitelist" type="text" placeholder="127.0.0.1" />
-        </label>
-        <label>
-          <span>Port</span>
-          <input id="tcp-port" type="number" min="0" max="65535" step="1" placeholder="7777" />
-        </label>
-      </section>
-    </main>
+      <div class="sdpi-item pi-section-title">
+        <div class="sdpi-item-label">TCP broadcast (global)</div>
+        <div class="sdpi-item-value"></div>
+      </div>
+      <div type="checkbox" class="sdpi-item">
+        <div class="sdpi-item-label">Listener</div>
+        <div class="sdpi-item-value">
+          <input id="tcp-enabled" type="checkbox" class="sdpi-item-value sdCheckbox sdProperty" />
+          <label for="tcp-enabled" class="sdpi-item-label">
+            <span></span>Enable memen_demon listener
+          </label>
+        </div>
+      </div>
+      <div class="sdpi-item">
+        <div class="sdpi-item-label">Whitelist</div>
+        <input
+          class="sdpi-item-value sdProperty"
+          id="tcp-whitelist"
+          type="text"
+          placeholder="127.0.0.1"
+        />
+      </div>
+      <div class="sdpi-item">
+        <div class="sdpi-item-label">Port</div>
+        <input
+          class="sdpi-item-value sdProperty"
+          id="tcp-port"
+          type="number"
+          min="0"
+          max="65535"
+          step="1"
+          placeholder="7777"
+        />
+      </div>
+    </div>
 
     <script src="../shared/commands.js"></script>
     <script src="pi.js"></script>

@@ -14,7 +14,7 @@
       ],
       "SupportedInMultiActions": true,
       "Tooltip": "Send a Stratagema stratagem sequence.",
-      "UUID": "com.stratagema.stratagem.action"
+      "UUID": "com.stratagema.sdplugin.stratagem"
     }
   ],
   "Author": "Stratagema",
@@ -23,9 +23,11 @@
   "Icon": "icons/blank",
   "Name": "Stratagema",
   "PropertyInspectorPath": "property-inspector/index.html",
-  "UUID": "com.stratagema.sdPlugin",
+  "UUID": "com.stratagema.sdplugin",
   "SDKVersion": 6,
-  "MinimumStreamDeckVersion": "7.0.3",
+  "Software": {
+    "MinimumVersion": "7.0.3"
+  },
   "URL": "https://github.com/h4rm0n1c/stratagema",
   "Version": "0.1.0",
   "OS": [

@@ -1,7 +1,6 @@
 name: Build Stream Deck plugin
 
 on:
-  push:
   pull_request:
 
 jobs:
@@ -17,6 +16,43 @@ jobs:
       - name: Build helper
         run: cargo build --release -p macro_stub
 
+      - name: Generate commands.json
+        run: node streamdeck_plugin/scripts/generate_commands_json.mjs
+
+      - name: Package helper artifact
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+
+          New-Item -ItemType Directory -Force -Path dist | Out-Null
+
+          $helperCandidates = @(
+            "macro_stub\\target\\release\\stratagema_macro_helper.exe",
+            "macro_stub\\target\\release\\macro_stub.exe",
+            "target\\release\\stratagema_macro_helper.exe",
+            "target\\release\\macro_stub.exe"
+          )
+
+          $helperSource = $helperCandidates | Where-Object { Test-Path $_ } | Select-Object -First 1
+
+          if (-not $helperSource) {
+            throw "Helper executable not found at any of: $($helperCandidates -join ', ')"
+          }
+
+          $helperName = "stratagema_macro_helper.exe"
+          Copy-Item -Path $helperSource -Destination (Join-Path "dist" $helperName) -Force
+          Copy-Item -Path "macro_stub\\assets\\blank.ico" -Destination "dist" -Force
+          Copy-Item -Path "macro_stub\\README.md" -Destination "dist" -Force
+
+      - name: Upload helper artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: macro-stub-windows
+          path: |
+            dist/stratagema_macro_helper.exe
+            dist/blank.ico
+            dist/README.md
+
       - name: Package Stream Deck plugin
         shell: pwsh
         run: |
@@ -24,11 +60,12 @@ jobs:
 
           $root = Resolve-Path "streamdeck_plugin"
           $dist = Join-Path $root "..\\dist"
-          $pluginId = "com.stratagema.sdPlugin"
+          $pluginUuid = "com.stratagema.sdplugin"
+          $pluginId = "$pluginUuid.sdPlugin"
           $buildDir = Join-Path $dist $pluginId
           $helperName = "stratagema_macro_helper.exe"
           $helperTargetDir = Join-Path $buildDir "helper"
-          $archivePath = Join-Path $dist "$pluginId.streamDeckPlugin"
+          $archivePath = Join-Path $dist "$pluginUuid.streamDeckPlugin"
 
           if (Test-Path $buildDir) {
             Remove-Item $buildDir -Recurse -Force
@@ -37,13 +74,16 @@ jobs:
           New-Item -ItemType Directory -Path $buildDir -Force | Out-Null
 
           Copy-Item -Path "$root\\*" -Destination $buildDir -Recurse -Force
+          New-Item -ItemType Directory -Path (Join-Path $buildDir "icons") -Force | Out-Null
           Copy-Item -Path "icons\\*" -Destination (Join-Path $buildDir "icons") -Recurse -Force
 
           New-Item -ItemType Directory -Path $helperTargetDir -Force | Out-Null
 
           $helperCandidates = @(
             "macro_stub\\target\\release\\stratagema_macro_helper.exe",
-            "macro_stub\\target\\release\\macro_stub.exe"
+            "macro_stub\\target\\release\\macro_stub.exe",
+            "target\\release\\stratagema_macro_helper.exe",
+            "target\\release\\macro_stub.exe"
           )
 
           $helperSource = $helperCandidates | Where-Object { Test-Path $_ } | Select-Object -First 1
@@ -68,5 +108,5 @@ jobs:
         with:
           name: stratagema-streamdeck-plugin
           path: |
-            dist/com.stratagema.sdPlugin.streamDeckPlugin
-            dist/com.stratagema.sdPlugin/**
+            dist/com.stratagema.sdplugin.streamDeckPlugin
+            dist/com.stratagema.sdplugin.sdPlugin/**

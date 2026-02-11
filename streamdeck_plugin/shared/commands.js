@@ -24,7 +24,7 @@ function normalizeLine(line, index, logger = console) {
   const id = idRaw.trim();
   const code = codeRaw.trim();
   const cooldownSeconds = Number.parseInt(cooldownRaw.trim(), 10);
-  const icon = (iconRaw && iconRaw.trim()) || DEFAULT_ICON;
+  const icon = (iconRaw && iconRaw.trim()) || `icons/${id}.png`;
 
   if (!id || !code || Number.isNaN(cooldownSeconds)) {
     logMalformed(logger, index, line, 'missing id/code or invalid cooldown');
