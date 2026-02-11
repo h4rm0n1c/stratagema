@@ -16,6 +16,9 @@ jobs:
       - name: Build helper
         run: cargo build --release -p macro_stub
 
+      - name: Generate commands.json
+        run: node streamdeck_plugin/scripts/generate_commands_json.mjs
+
       - name: Package helper artifact
         shell: pwsh
         run: |

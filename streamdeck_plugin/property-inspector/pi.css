@@ -17,3 +17,13 @@
 .sdpi-item + .pi-section-title {
   margin-top: 8px;
 }
+
+.pi-status {
+  font-size: 11px;
+  line-height: 1.3;
+  color: #9ad26f;
+}
+
+.pi-status.error {
+  color: #ff8f8f;
+}

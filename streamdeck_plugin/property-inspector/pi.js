@@ -6,6 +6,8 @@ const DEFAULT_SETTINGS = {
   skipCtrl: false,
 };
 
+const COMMANDS_FALLBACK_DELAY_MS = 800;
+
 let websocket = null;
 let uuid = null;
 let actionInfo = null;
@@ -13,6 +15,7 @@ let actionContext = null;
 let settings = { ...DEFAULT_SETTINGS };
 let globalSettings = {};
 let commands = [];
+let commandsReceivedFromPlugin = false;
 
 function connectElgatoStreamDeckSocket(port, inUUID, registerEvent, info, inActionInfo) {
   uuid = inUUID;
@@ -30,6 +33,11 @@ function connectElgatoStreamDeckSocket(port, inUUID, registerEvent, info, inActi
     requestSettings();
     requestGlobalSettings();
     sendToPlugin({ type: 'refreshCommands' });
+    window.setTimeout(() => {
+      if (!commandsReceivedFromPlugin) {
+        loadCommandsFallback();
+      }
+    }, COMMANDS_FALLBACK_DELAY_MS);
   };
 
   websocket.onmessage = (evt) => {
@@ -59,15 +67,14 @@ function handleMessage(msg) {
 function handlePluginPayload(payload) {
   switch (payload.type) {
     case 'commands': {
-      commands = payload.commands || [];
-      const updated = applySelectionDefaults();
-      populateStratagems();
-      syncForm();
-      if (updated) {
-        setSettings();
-      }
+      commandsReceivedFromPlugin = true;
+      applyCommands(payload.commands || []);
+      setCommandsStatus(`Loaded ${commands.length} commands from plugin.`);
       break;
     }
+    case 'commandsError':
+      setCommandsStatus(payload.message || 'Failed to load commands from plugin.', true);
+      break;
     case 'syncSettings':
       settings = { ...DEFAULT_SETTINGS, ...(payload.settings || {}) };
       globalSettings = payload.globalSettings || {};
@@ -79,6 +86,33 @@ function handlePluginPayload(payload) {
       break;
     default:
       break;
+  }
+}
+
+async function loadCommandsFallback() {
+  try {
+    const response = await fetch('../commands.json', { cache: 'no-store' });
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}`);
+    }
+    const loaded = await response.json();
+    if (!Array.isArray(loaded)) {
+      throw new Error('commands.json did not contain an array');
+    }
+    applyCommands(loaded);
+    setCommandsStatus(`Loaded ${commands.length} commands from commands.json fallback.`);
+  } catch (err) {
+    setCommandsStatus(`commands fallback failed: ${err.message}`, true);
+  }
+}
+
+function applyCommands(loadedCommands) {
+  commands = loadedCommands;
+  const updated = applySelectionDefaults();
+  populateStratagems();
+  syncForm();
+  if (updated) {
+    setSettings();
   }
 }
 
@@ -198,6 +232,15 @@ function syncGlobalForm() {
   document.getElementById('tcp-port').value = globalSettings.tcpPort || '';
 }
 
+function setCommandsStatus(message, isError = false) {
+  const status = document.getElementById('commands-status');
+  if (!status) {
+    return;
+  }
+  status.textContent = message;
+  status.classList.toggle('error', isError);
+}
+
 function attachListeners() {
   document.getElementById('stratagem-select').addEventListener('change', (evt) => {
     settings.stratagemId = evt.target.value;
@@ -247,10 +290,16 @@ function attachListeners() {
 
   document.getElementById('refresh-commands').addEventListener('click', () => {
     sendToPlugin({ type: 'refreshCommands' });
+    window.setTimeout(() => {
+      if (!commandsReceivedFromPlugin) {
+        loadCommandsFallback();
+      }
+    }, COMMANDS_FALLBACK_DELAY_MS);
   });
 }
 
 window.addEventListener('DOMContentLoaded', () => {
   attachListeners();
   populateStratagems();
+  loadCommandsFallback();
 });

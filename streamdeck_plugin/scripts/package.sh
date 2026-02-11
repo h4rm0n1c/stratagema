@@ -28,6 +28,8 @@ else
 fi
 popd >/dev/null
 
+node "$ROOT_DIR/scripts/generate_commands_json.mjs"
+
 rm -rf "$BUILD_DIR"
 mkdir -p "$BUILD_DIR"
 

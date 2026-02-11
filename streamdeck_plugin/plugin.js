@@ -41,6 +41,7 @@ class StratagemaPlugin {
     this.websocket = null;
     this.uuid = null;
     this.actionContexts = new Map();
+    this.commandsError = null;
     this.commands = this.loadCommands();
     this.helperPath = this.resolveHelperPath();
     this.globalSettings = { ...DEFAULT_GLOBAL_SETTINGS };
@@ -70,10 +71,16 @@ class StratagemaPlugin {
 
   loadCommands() {
     const commandsPath = path.join(__dirname, 'commands.txt');
+    this.log(`Loading commands from ${commandsPath}`);
     try {
-      return loadCommandsFromFile(commandsPath);
+      const loadedCommands = loadCommandsFromFile(commandsPath);
+      this.commandsError = null;
+      this.log(`Loaded ${loadedCommands.length} commands from commands.txt`);
+      return loadedCommands;
     } catch (err) {
-      this.log(`Failed to load commands.txt: ${err.message}`);
+      this.commandsError = `Failed to load commands.txt from ${commandsPath}: ${err.message}`;
+      this.log(this.commandsError);
+      this.pushCommandsErrorToAllInspectors();
       return [];
     }
   }
@@ -257,11 +264,29 @@ class StratagemaPlugin {
       type: 'commands',
       commands: this.commands,
     });
+    if (this.commandsError) {
+      this.sendToPropertyInspector(context, {
+        type: 'commandsError',
+        message: this.commandsError,
+      });
+    }
   }
 
   pushCommandsToAllInspectors() {
     this.actionContexts.forEach((_ctx, context) => {
       this.pushCommandsToPropertyInspector(context);
+    });
+  }
+
+  pushCommandsErrorToAllInspectors() {
+    if (!this.commandsError) {
+      return;
+    }
+    this.actionContexts.forEach((_ctx, context) => {
+      this.sendToPropertyInspector(context, {
+        type: 'commandsError',
+        message: this.commandsError,
+      });
     });
   }
 
@@ -337,6 +362,9 @@ class StratagemaPlugin {
   }
 
   log(message) {
+    if (typeof console !== 'undefined' && typeof console.log === 'function') {
+      console.log(message);
+    }
     this.send({
       event: 'logMessage',
       payload: {
