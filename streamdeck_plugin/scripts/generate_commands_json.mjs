@@ -20,13 +20,29 @@ fs.writeFileSync(commandsJsonPath, `${JSON.stringify(commands, null, 2)}\n`, 'ut
 
 const escapedRaw = raw.replace(/`/g, '\\`').replace(/\$\{/g, '\\\${');
 const piJs = fs.readFileSync(piJsPath, 'utf8');
-const nextPiJs = piJs.replace(
-  /const EMBEDDED_COMMANDS_TXT = `([\s\S]*?)`;\n\n/,
-  `const EMBEDDED_COMMANDS_TXT = \`\n${escapedRaw}\`;\n\n`
-);
 
-if (nextPiJs === piJs) {
-  throw new Error('Could not find EMBEDDED_COMMANDS_TXT block in pi.js to update');
+const embeddedBlockRegex = /const\s+EMBEDDED_COMMANDS_TXT\s*=\s*`[\s\S]*?`;\r?\n\r?\n/;
+const replacementBlock = `const EMBEDDED_COMMANDS_TXT = \`\n${escapedRaw}\`;\n\n`;
+
+let nextPiJs;
+if (embeddedBlockRegex.test(piJs)) {
+  nextPiJs = piJs.replace(embeddedBlockRegex, replacementBlock);
+} else {
+  const startToken = 'const EMBEDDED_COMMANDS_TXT = `';
+  const startIndex = piJs.indexOf(startToken);
+  if (startIndex === -1) {
+    throw new Error('Could not find EMBEDDED_COMMANDS_TXT start token in pi.js to update');
+  }
+
+  const endIndex = piJs.indexOf('`;', startIndex + startToken.length);
+  if (endIndex === -1) {
+    throw new Error('Could not find EMBEDDED_COMMANDS_TXT end token in pi.js to update');
+  }
+
+  const blockEnd = endIndex + 2;
+  const before = piJs.slice(0, startIndex);
+  const after = piJs.slice(blockEnd).replace(/^\r?\n\r?\n/, '\n\n');
+  nextPiJs = `${before}${replacementBlock}${after}`;
 }
 
 fs.writeFileSync(piJsPath, nextPiJs, 'utf8');
