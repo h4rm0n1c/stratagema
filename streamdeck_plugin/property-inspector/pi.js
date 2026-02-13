@@ -93,6 +93,12 @@ function handlePluginPayload(payload) {
 
 async function loadCommandsFallback() {
   try {
+    if (Array.isArray(window.StratagemaEmbeddedCommands) && window.StratagemaEmbeddedCommands.length > 0) {
+      applyCommands(window.StratagemaEmbeddedCommands);
+      setCommandsStatus(`Loaded ${commands.length} embedded commands fallback.`);
+      return;
+    }
+
     const response = await fetch('../commands.json', { cache: 'no-store' });
     if (!response.ok) {
       throw new Error(`HTTP ${response.status}`);
