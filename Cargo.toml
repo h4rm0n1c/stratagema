@@ -1,5 +1,5 @@
 [workspace]
-members = ["macro_stub"]
+members = ["macro_stub", "archive/rust_multi_stubs"]
 resolver = "2"
 
 [workspace.package]

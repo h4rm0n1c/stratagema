@@ -24,6 +24,11 @@
   color: #9ad26f;
 }
 
-.pi-status.error {
+.pi-status.warning {
   color: #ff8f8f;
+}
+
+.pi-status-row .sdpi-item-value {
+  font-size: 10px;
+  opacity: 0.9;
 }

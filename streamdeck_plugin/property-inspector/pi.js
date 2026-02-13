@@ -69,9 +69,11 @@ function handlePluginPayload(payload) {
     case 'commands': {
       commandsReceivedFromPlugin = true;
       applyCommands(payload.commands || []);
-      setCommandsStatus(`Loaded ${commands.length} commands from plugin.`);
       break;
     }
+    case 'commandsStatus':
+      renderCommandsStatus(payload);
+      break;
     case 'commandsError':
       setCommandsStatus(payload.message || 'Failed to load commands from plugin.', true);
       break;
@@ -238,7 +240,25 @@ function setCommandsStatus(message, isError = false) {
     return;
   }
   status.textContent = message;
-  status.classList.toggle('error', isError);
+  status.classList.toggle('warning', isError);
+}
+
+function renderCommandsStatus(statusPayload) {
+  const sourcePath = statusPayload.sourcePath || 'commands.txt';
+  if (statusPayload.error) {
+    setCommandsStatus(`Warning: ${statusPayload.error}`, true);
+    return;
+  }
+
+  if (!statusPayload.validCount) {
+    setCommandsStatus(
+      `Warning: parsed 0 valid commands from ${sourcePath}. Expected format: id|code|cooldownSeconds`,
+      true
+    );
+    return;
+  }
+
+  setCommandsStatus(`Loaded ${statusPayload.validCount} commands from ${sourcePath}.`);
 }
 
 function attachListeners() {
