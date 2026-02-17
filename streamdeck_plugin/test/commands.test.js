@@ -1,9 +1,9 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 
-const { parseCommands, DEFAULT_ICON } = require('../shared/commands');
+const { parseCommands } = require('../shared/commands');
 
-test('parseCommands normalizes valid rows and falls back to blank icon', () => {
+test('parseCommands normalizes valid rows and defaults icon to id-based path', () => {
   const text = [
     '# comment row',
     'machine_gun|saswd|410',
@@ -18,7 +18,7 @@ test('parseCommands normalizes valid rows and falls back to blank icon', () => {
     id: 'machine_gun',
     code: 'saswd',
     cooldownSeconds: 410,
-    icon: DEFAULT_ICON,
+    icon: 'icons/machine_gun.png',
   });
   assert.deepEqual(commands[1], {
     id: 'laser_beam',

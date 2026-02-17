@@ -42,7 +42,8 @@ class StratagemaPlugin {
     this.uuid = null;
     this.actionContexts = new Map();
     this.commandsError = null;
-    this.commands = this.loadCommands();
+    this.commandsStatus = this.loadCommands();
+    this.commands = this.commandsStatus.commands;
     this.helperPath = this.resolveHelperPath();
     this.globalSettings = { ...DEFAULT_GLOBAL_SETTINGS };
     this.tcpServer = null;
@@ -70,18 +71,33 @@ class StratagemaPlugin {
   }
 
   loadCommands() {
-    const commandsPath = path.join(__dirname, 'commands.txt');
+    const commandsPath = path.resolve(path.join(__dirname, 'commands.txt'));
     this.log(`Loading commands from ${commandsPath}`);
     try {
+      const fs = require('fs');
+      const rawContents = fs.readFileSync(commandsPath, 'utf8');
       const loadedCommands = loadCommandsFromFile(commandsPath);
+      const lineCount = rawContents.length === 0 ? 0 : rawContents.split(/\r?\n/).length;
       this.commandsError = null;
       this.log(`Loaded ${loadedCommands.length} commands from commands.txt`);
-      return loadedCommands;
+      return {
+        commands: loadedCommands,
+        sourcePath: commandsPath,
+        error: null,
+        lineCount,
+        validCount: loadedCommands.length,
+      };
     } catch (err) {
       this.commandsError = `Failed to load commands.txt from ${commandsPath}: ${err.message}`;
       this.log(this.commandsError);
       this.pushCommandsErrorToAllInspectors();
-      return [];
+      return {
+        commands: [],
+        sourcePath: commandsPath,
+        error: this.commandsError,
+        lineCount: 0,
+        validCount: 0,
+      };
     }
   }
 
@@ -125,7 +141,8 @@ class StratagemaPlugin {
 
   onSendToPlugin(context, payload) {
     if (payload && payload.type === 'refreshCommands') {
-      this.commands = this.loadCommands();
+      this.commandsStatus = this.loadCommands();
+      this.commands = this.commandsStatus.commands;
       this.pushCommandsToPropertyInspector(context);
       this.pushCommandsToAllInspectors();
       this.refreshCommandDefaults();
@@ -263,6 +280,10 @@ class StratagemaPlugin {
     this.sendToPropertyInspector(context, {
       type: 'commands',
       commands: this.commands,
+    });
+    this.sendToPropertyInspector(context, {
+      type: 'commandsStatus',
+      ...this.commandsStatus,
     });
     if (this.commandsError) {
       this.sendToPropertyInspector(context, {
