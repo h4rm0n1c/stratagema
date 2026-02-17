@@ -16,27 +16,26 @@ const piJsPath = path.join(pluginRoot, 'property-inspector', 'pi.js');
 const raw = fs.readFileSync(commandsTxtPath, 'utf8');
 const commands = parseCommands(raw, console);
 
+// Kept for tooling/debug parity; PI runtime no longer depends on this file.
 fs.writeFileSync(commandsJsonPath, `${JSON.stringify(commands, null, 2)}\n`, 'utf8');
 
-const escapedRaw = raw.replace(/`/g, '\\`').replace(/\$\{/g, '\\\${');
 const piJs = fs.readFileSync(piJsPath, 'utf8');
-
-const embeddedBlockRegex = /const\s+EMBEDDED_COMMANDS_TXT\s*=\s*`[\s\S]*?`;\r?\n\r?\n/;
-const replacementBlock = `const EMBEDDED_COMMANDS_TXT = \`\n${escapedRaw}\`;\n\n`;
+const embeddedBlockRegex = /const\s+EMBEDDED_COMMANDS\s*=\s*\[[\s\S]*?\];\r?\n\r?\n/;
+const replacementBlock = `const EMBEDDED_COMMANDS = ${JSON.stringify(commands, null, 2)};\n\n`;
 
 let nextPiJs;
 if (embeddedBlockRegex.test(piJs)) {
   nextPiJs = piJs.replace(embeddedBlockRegex, replacementBlock);
 } else {
-  const startToken = 'const EMBEDDED_COMMANDS_TXT = `';
+  const startToken = 'const EMBEDDED_COMMANDS = [';
   const startIndex = piJs.indexOf(startToken);
   if (startIndex === -1) {
-    throw new Error('Could not find EMBEDDED_COMMANDS_TXT start token in pi.js to update');
+    throw new Error('Could not find EMBEDDED_COMMANDS start token in pi.js to update');
   }
 
-  const endIndex = piJs.indexOf('`;', startIndex + startToken.length);
+  const endIndex = piJs.indexOf('];', startIndex + startToken.length);
   if (endIndex === -1) {
-    throw new Error('Could not find EMBEDDED_COMMANDS_TXT end token in pi.js to update');
+    throw new Error('Could not find EMBEDDED_COMMANDS end token in pi.js to update');
   }
 
   const blockEnd = endIndex + 2;
