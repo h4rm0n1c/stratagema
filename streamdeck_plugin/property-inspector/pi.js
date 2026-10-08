@@ -1,7 +1,7 @@
 const DEFAULT_SETTINGS = {
   stratagemId: '',
   code: '',
-  cooldownSeconds: 0,
+  cooldownSeconds: null,
   useArrows: false,
   skipCtrl: false,
 };
@@ -607,8 +607,8 @@ function handlePluginPayload(payload) {
       syncForm();
       syncGlobalForm();
       break;
-    case 'cooldownStarted':
-      // Placeholder hook for future cooldown visualization.
+    case 'executionStatus':
+      document.getElementById('execution-status').textContent = payload.message || 'Ready.';
       break;
     default:
       break;

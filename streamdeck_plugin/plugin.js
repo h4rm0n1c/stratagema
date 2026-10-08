@@ -1,5 +1,7 @@
 const childProcess = require('child_process');
 const net = require('net');
+const fs = require('fs');
+const RESET_ROUND_ACTION = 'com.stratagema.sdplugin.reset-round';
 const path = require('path');
 const WebSocket = require('ws');
 const { loadCommandsFromFile, resolveIconPath } = require('./shared/commands');
@@ -26,7 +28,7 @@ function buildHelperSpawnOptions(platform = process.platform) {
 const DEFAULT_SETTINGS = {
   stratagemId: '',
   code: '',
-  cooldownSeconds: 0,
+  cooldownSeconds: null,
   useArrows: false,
   skipCtrl: false,
 };
@@ -38,7 +40,12 @@ const DEFAULT_GLOBAL_SETTINGS = {
 };
 
 class StratagemaPlugin {
-  constructor() {
+  constructor({ now = Date.now } = {}) {
+    this.now = now;
+    this.cooldownTimer = null;
+    this.roundGeneration = 0;
+    this.sending = false;
+    this.iconData = new Map();
     this.websocket = null;
     this.uuid = null;
     this.actionContexts = new Map();
@@ -76,6 +83,8 @@ class StratagemaPlugin {
     this.websocket.onclose = () => {
       this.websocket = null;
       this.stopTcpServer();
+      clearInterval(this.cooldownTimer);
+      this.cooldownTimer = null;
     };
   }
 
@@ -113,10 +122,13 @@ class StratagemaPlugin {
   routeMessage(message) {
     switch (message.event) {
       case 'keyDown':
-        this.onKeyDown(message.context, message.payload);
+        return this.onKeyDown(message.context, message.payload, message.action);
         break;
       case 'willAppear':
-        this.onWillAppear(message.context, message.payload);
+        this.onWillAppear(message.context, message.payload, message.action);
+        break;
+      case 'willDisappear':
+        if (this.actionContexts.has(message.context)) this.actionContexts.get(message.context).visible = false;
         break;
       case 'sendToPlugin':
         this.onSendToPlugin(message.context, message.payload);
@@ -135,16 +147,14 @@ class StratagemaPlugin {
     }
   }
 
-  onWillAppear(context, payload) {
-    const settings = this.mergeSettings(payload.settings || {});
-    this.actionContexts.set(context, {
-      settings,
-      state: {},
-    });
-    if (this.applyCommandDefaults(context, settings)) {
-      this.setSettings(context, settings);
-    }
-    this.updateKeyImage(context, settings.stratagemId);
+  onWillAppear(context, payload = {}, action) {
+    const ctx = this.ensureContext(context, payload.settings || {});
+    ctx.settings = this.mergeSettings(payload.settings || {});
+    ctx.action = action || ctx.action;
+    ctx.visible = true;
+    if (ctx.action === RESET_ROUND_ACTION) return;
+    if (this.applyCommandDefaults(context, ctx.settings)) this.setSettings(context, ctx.settings);
+    this.updateKeyImage(context, ctx.settings.stratagemId);
     this.pushCommandsToPropertyInspector(context);
   }
 
@@ -158,41 +168,114 @@ class StratagemaPlugin {
     }
   }
 
-  onKeyDown(context, payload) {
+  async onKeyDown(context, payload = {}, action) {
     const ctx = this.ensureContext(context, payload.settings || {});
+    ctx.action = action || ctx.action;
+    if (ctx.action === RESET_ROUND_ACTION) {
+      this.resetRound();
+      return;
+    }
+    if (this.remainingSeconds(ctx) > 0) {
+      this.updateKeyImage(context, ctx.settings.stratagemId);
+      this.pushExecutionStatus(context, 'Cooling down; press ignored.');
+      return;
+    }
+    if (this.sending) {
+      this.send({ event: 'showAlert', context });
+      this.pushExecutionStatus(context, 'Sending a sequence; press ignored.');
+      return;
+    }
     const settings = ctx.settings;
     const command = this.getCommand(settings.stratagemId);
     const effectiveCode = settings.code || (command ? command.code : '');
-    const cooldownSeconds = settings.cooldownSeconds || (command ? command.cooldownSeconds : 0);
+    const cooldownSeconds = Number(settings.cooldownSeconds ?? (command ? command.cooldownSeconds : 0));
     const commandName = command ? command.id : settings.stratagemId || 'custom';
-
-    if (!effectiveCode) {
-      this.log('No stratagem code configured; showing alert.');
+    if (!effectiveCode || !Number.isFinite(cooldownSeconds) || cooldownSeconds < 0) {
+      const message = !effectiveCode ? 'No stratagem code configured; showing alert.' : 'Invalid cooldown; use a non-negative number.';
+      this.log(message);
+      this.pushExecutionStatus(context, message);
       this.send({ event: 'showAlert', context });
       return;
     }
-
+    this.sending = true;
+    const generation = this.roundGeneration;
     this.log(`Triggering stratagem: ${settings.stratagemId || 'custom'} (${effectiveCode})`);
+    this.pushExecutionStatus(context, 'Sending sequence…');
+    try {
+      await this.invokeHelper(context, effectiveCode, settings);
+      // A reset during playback must not recreate a cooldown from the old round.
+      if (generation === this.roundGeneration && cooldownSeconds > 0) {
+        ctx.state.cooldownUntil = this.now() + cooldownSeconds * 1000;
+        this.startCooldownTimer();
+      }
+      this.updateKeyImage(context, ctx.settings.stratagemId);
+      this.pushExecutionStatus(context);
+      this.broadcastTcp(`[${effectiveCode}][${commandName}][${cooldownSeconds}]`);
+    } catch (err) {
+      this.log(`Helper error: ${err.message}`);
+      this.pushExecutionStatus(context, `Sequence failed: ${err.message}`);
+      this.send({ event: 'showAlert', context });
+    } finally {
+      this.sending = false;
+    }
+  }
 
-    this.invokeHelper(context, effectiveCode, settings)
-      .then(() => {
-        this.send({ event: 'showOk', context });
-        this.sendToPropertyInspector(context, {
-          type: 'cooldownStarted',
-          cooldownSeconds,
-          startedAt: Date.now(),
-        });
-        this.broadcastTcp(`[${effectiveCode}][${commandName}][${cooldownSeconds}]`);
-      })
-      .catch((err) => {
-        this.log(`Helper error: ${err.message}`);
-        this.send({ event: 'showAlert', context });
-      });
+  remainingSeconds(ctx) {
+    return Math.max(0, Math.ceil(((ctx.state.cooldownUntil || 0) - this.now()) / 1000));
+  }
+
+  pushExecutionStatus(context, message) {
+    const ctx = this.actionContexts.get(context);
+    if (!ctx || ctx.action === RESET_ROUND_ACTION) return;
+    const remaining = this.remainingSeconds(ctx);
+    this.sendToPropertyInspector(context, {
+      type: 'executionStatus', remainingSeconds: remaining,
+      message: message || (remaining ? `Cooling down: ${remaining}s remaining.` : 'Ready.'),
+    });
+  }
+
+  startCooldownTimer() {
+    if (this.cooldownTimer) return;
+    this.cooldownTimer = setInterval(() => this.tickCooldowns(), 250);
+    this.cooldownTimer.unref();
+  }
+
+  tickCooldowns() {
+    let active = false;
+    for (const [context, ctx] of this.actionContexts) {
+      if (!ctx.state.cooldownUntil) continue;
+      const remaining = this.remainingSeconds(ctx);
+      active ||= remaining > 0;
+      if (remaining === 0) delete ctx.state.cooldownUntil;
+      if (ctx.visible !== false && ctx.state.renderedRemaining !== remaining) {
+        this.updateKeyImage(context, ctx.settings.stratagemId);
+        this.pushExecutionStatus(context);
+      }
+    }
+    if (!active) {
+      clearInterval(this.cooldownTimer);
+      this.cooldownTimer = null;
+    }
+  }
+
+  resetRound() {
+    this.roundGeneration += 1;
+    clearInterval(this.cooldownTimer);
+    this.cooldownTimer = null;
+    for (const [context, ctx] of this.actionContexts) {
+      delete ctx.state.cooldownUntil;
+      delete ctx.state.renderedRemaining;
+      if (ctx.action === RESET_ROUND_ACTION) continue;
+      if (ctx.visible !== false) this.updateKeyImage(context, ctx.settings.stratagemId);
+      this.pushExecutionStatus(context, 'Round reset. Ready.');
+    }
+    this.log('Round reset; all cooldowns cleared.');
   }
 
   onReceiveSettings(context, settings) {
     const ctx = this.ensureContext(context, settings);
     ctx.settings = this.mergeSettings(settings);
+    if (ctx.action === RESET_ROUND_ACTION) return;
     if (this.applyCommandDefaults(context, ctx.settings)) {
       this.setSettings(context, ctx.settings);
     }
@@ -211,6 +294,7 @@ class StratagemaPlugin {
       globalSettings: this.globalSettings || {},
     });
     this.pushCommandsToPropertyInspector(context);
+    this.pushExecutionStatus(context);
   }
 
   ensureContext(context, settings) {
@@ -247,7 +331,7 @@ class StratagemaPlugin {
     const previousCommand = state.lastCommandId ? this.getCommand(state.lastCommandId) : null;
     const codeIsDefault = !settings.code || (previousCommand && settings.code === previousCommand.code);
     const cooldownIsDefault =
-      !settings.cooldownSeconds ||
+      settings.cooldownSeconds == null ||
       (previousCommand && settings.cooldownSeconds === previousCommand.cooldownSeconds);
 
     let updated = false;
@@ -274,7 +358,22 @@ class StratagemaPlugin {
 
   updateKeyImage(context, stratagemId) {
     const command = this.getCommand(stratagemId);
-    const image = resolveIconPath(command);
+    let image = resolveIconPath(command);
+    const ctx = this.actionContexts.get(context);
+    const remaining = ctx ? this.remainingSeconds(ctx) : 0;
+    if (ctx) ctx.state.renderedRemaining = remaining;
+    if (remaining > 0) {
+      if (!this.iconData.has(image)) {
+        try {
+          this.iconData.set(image, `data:image/png;base64,${fs.readFileSync(path.join(__dirname, image)).toString('base64')}`);
+        } catch { this.iconData.set(image, ''); }
+      }
+      const icon = this.iconData.get(image);
+      const label = `${Math.floor(remaining / 60)}:${String(remaining % 60).padStart(2, '0')}`;
+      // Preserve the category-colored frame; dim the artwork behind the timer.
+      const svg = `<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="144" height="144" viewBox="0 0 144 144"><rect width="144" height="144" fill="#242424"/>${icon ? `<image xlink:href="${icon}" width="144" height="144"/>` : ''}<rect x="8" y="8" width="128" height="128" fill="#161816" opacity="0.82"/><text x="72" y="87" text-anchor="middle" font-family="Bahnschrift SemiCondensed,Arial Narrow,Arial,sans-serif" font-size="44" font-weight="bold" fill="#ffffff">${label}</text></svg>`;
+      image = `data:image/svg+xml;base64,${Buffer.from(svg).toString('base64')}`;
+    }
     this.send({
       event: 'setImage',
       context,
@@ -322,6 +421,7 @@ class StratagemaPlugin {
 
   refreshCommandDefaults() {
     this.actionContexts.forEach((ctx, context) => {
+      if (ctx.action === RESET_ROUND_ACTION) return;
       if (this.applyCommandDefaults(context, ctx.settings)) {
         this.setSettings(context, ctx.settings);
       }

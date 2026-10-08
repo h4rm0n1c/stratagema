@@ -2,7 +2,17 @@
 
 This Windows plugin runs stratagem macros without Advanced Launcher. The repaired
 plugin has been confirmed working in Stream Deck by the maintainer. It is still
-a preview with outstanding feature work listed in `docs/plugin_runtime_review.md`.
+a preview with outstanding feature work listed in `docs/plugin_feature_ux_review.md`.
+
+## Cooldowns and new rounds
+
+A successful sequence starts the configured per-key countdown. Presses during the
+countdown are ignored. Additional presses while any sequence is being sent are
+also ignored; they are never queued. Failed sends do not start a cooldown.
+
+Drag **Reset Round** from the Stratagema actions list onto a spare key. Press it
+at the start of a round to clear all cooldowns across pages and profiles. It
+requires no configuration and does not cancel input already being sent.
 
 ## Layout
 - `manifest.json` – SDK v2 manifest with the Node 20 runtime for the `com.stratagema.sdplugin.stratagem` key. Windows only; the macro helper does not implement macOS input.
@@ -91,7 +101,7 @@ To prepare a release once the remaining concerns are addressed:
 2. Commit the changes to `streamdeck-plugin` and push the branch. Check the
    **Build Stream Deck plugin** workflow and test its installer in Stream Deck.
 3. Tag the tested commit as `streamdeck-v<manifest-version>` and push that tag,
-   e.g. `streamdeck-v0.1.2.0`. CI rejects a tag that differs from the manifest.
+   e.g. `streamdeck-v0.1.6.0`. CI rejects a tag that differs from the manifest.
 4. CI rebuilds and tests that commit, then creates a **draft prerelease** with the
    installer and SHA-256 checksum. Review the draft and publish it when ready.
 
@@ -102,8 +112,8 @@ from the Advanced Launcher releases on `main`.
 These steps mirror the validation matrix in the Stream Deck plugin design docs:
 
 - **Property Inspector dropdown** – Open the Property Inspector, ensure the stratagem dropdown populates from `commands.txt`, and verify custom code/cooldown fields sync back to the key when changed.
-- **Keypress → helper** – Press a configured key and confirm the helper launches with the expected code/flags (WASD vs. arrows, control toggle) and the key shows the standard OK indicator.
-- **Cooldown overlay/reset (not implemented yet)** – The runtime sends a `cooldownStarted` notification to the inspector, but does not yet draw a key countdown or support long-press reset. This remains a feature parity task.
+- **Keypress → helper** – Press a configured key and confirm the helper launches with the expected code/flags (WASD vs. arrows, control toggle) and the key starts its cooldown without a green checkmark.
+- **Cooldown and Reset Round** – After successful playback, the key displays remaining time and ignores presses until ready. Change pages and return to confirm tracking continues. Add the separate Reset Round action and press it to clear every cooldown, including hidden keys. Resetting during playback lets that sequence finish without restoring its old cooldown. A zero-second override disables cooldown for that key. Plugin restart clears timers.
 - **TCP listener reconnect** – Run a listener for helper JSON events, trigger a stratagem, then restart the listener to ensure subsequent keypresses are still delivered after reconnecting.
 
 ## Helper lookup and errors

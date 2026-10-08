@@ -1,20 +1,36 @@
-# Stratagema (Restructured)
+# Stratagema — native Stream Deck plugin
 
-This branch pivots to a single, configurable macro stub and stream deck plugin planning while preserving the original multi-stub generator as an archive.
+This branch contains the Windows Stream Deck plugin preview. It sends stratagem
+sequences directly, without Advanced Launcher, and includes per-key cooldowns
+and a separate **Reset Round** action to clear them all.
+
+## Install
+
+Download the `.streamDeckPlugin` installer from the
+[native plugin preview release](https://github.com/h4rm0n1c/stratagema/releases/tag/streamdeck-v0.1.6.0)
+and double-click it. Requires Windows 10+ and Stream Deck 7.0+.
+
+In Stream Deck's Stratagema action list, drag **Stratagema Stratagem** onto a key
+and choose a stratagem. Drag **Reset Round** onto another key for the start of a
+new round. Input bindings must match your game settings.
+
+See [plugin setup and build instructions](streamdeck_plugin/README.md) and
+[preview features and limitations](docs/streamdeck_release_notes.md).
+
+The [Advanced Launcher version on main](https://github.com/h4rm0n1c/stratagema/tree/main)
+remains available. Native preview releases use separate `streamdeck-v…` tags.
 
 ## Layout
-- `macro_stub/` – Standalone stratagem macro helper with CLI flags.
-- `streamdeck_plugin/` – Stream Deck plugin scaffold (manifest, Property Inspector, packaging script).
-- `icons/` – Stratagem PNG set retained unchanged for reference builds and documentation.
-- `docs/` – Stream Deck plugin design notes and task planning (read these first) plus macro stub compatibility notes.
-- `archive/` – Snapshot of the original Rust multi-stub generator and helper scripts.
 
-## Building the macro stub
-1. Install Rust (and a Windows toolchain such as `x86_64-pc-windows-gnu` if cross-compiling).
-2. From the repository root run:
-   ```bash
-   cargo build --release -p macro_stub
-   ```
-3. The Windows executable will be at `target/release/macro_stub.exe`.
+- `macro_stub/` — Windows keyboard helper bundled with the plugin.
+- `streamdeck_plugin/` — Runtime, settings inspector, tests, and packaging scripts.
+- `icons/` — Stratagem and Reset Round artwork.
+- `docs/` — Design notes, implementation reviews, and release notes.
+- `archive/` — Original multi-stub generator and helper scripts.
 
-Use `macro_stub.exe --help` for argument details. The helper supports WASD or arrow playback, optional cooldown waits, and a JSON logging toggle for integration experiments.
+## Build
+
+See [packaging instructions](streamdeck_plugin/README.md#packaging-unsigned-developer-bundle).
+CI runs backend and inspector tests on Windows before packaging the clickable
+installer and its checksum. Tag builds prepare a draft prerelease from that
+CI-built artifact.

@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="144" height="144" viewBox="0 0 144 144">
+  <defs><radialGradient id="charcoal"><stop stop-color="#414141"/><stop offset="1" stop-color="#252525"/></radialGradient></defs>
+  <rect width="144" height="144" fill="#c7b565"/>
+  <rect x="8" y="8" width="128" height="128" fill="url(#charcoal)" stroke="#4a4430" stroke-width="2"/>
+  <path d="M13 13 H34 L13 34 Z M131 13 H110 L131 34 Z M13 131 H34 L13 110 Z M131 131 H110 L131 110 Z" fill="#c7b565"/>
+  <path d="M100 45 A31 31 0 1 0 101 72" fill="none" stroke="#fff" stroke-width="9"/><path d="M110 27 V54 H83 Z" fill="#fff"/>
+  <g fill="#fff" font-family="Bahnschrift SemiCondensed,Arial Narrow,Arial,sans-serif" font-weight="bold" text-anchor="middle"><text x="72" y="109" font-size="19" letter-spacing="1">RESET</text><text x="72" y="127" font-size="16" letter-spacing="1">ROUND</text></g>
+</svg>

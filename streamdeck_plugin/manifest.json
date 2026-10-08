@@ -16,6 +16,21 @@
       "SupportedInMultiActions": true,
       "Tooltip": "Send a Stratagema stratagem sequence.",
       "UUID": "com.stratagema.sdplugin.stratagem"
+    },
+    {
+      "Name": "Reset Round",
+      "Icon": "icons/reset-round",
+      "States": [
+        {
+          "Image": "icons/reset-round-key",
+          "TitleAlignment": "top",
+          "FontSize": 10
+        }
+      ],
+      "SupportedInMultiActions": true,
+      "Tooltip": "Clear all Stratagema cooldowns for a new round.",
+      "UUID": "com.stratagema.sdplugin.reset-round",
+      "PropertyInspectorPath": "property-inspector/reset-round.html"
     }
   ],
   "Author": "Stratagema",
@@ -25,13 +40,15 @@
   "Name": "Stratagema",
   "PropertyInspectorPath": "property-inspector/index.html",
   "UUID": "com.stratagema.sdplugin",
-  "Nodejs": { "Version": "20" },
+  "Nodejs": {
+    "Version": "20"
+  },
   "SDKVersion": 2,
   "Software": {
     "MinimumVersion": "7.0"
   },
   "URL": "https://github.com/h4rm0n1c/stratagema",
-  "Version": "0.1.2.0",
+  "Version": "0.1.6.0",
   "OS": [
     {
       "Platform": "windows",
