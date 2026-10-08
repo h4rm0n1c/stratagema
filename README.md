@@ -7,7 +7,7 @@ and a separate **Reset Round** action to clear them all.
 ## Install
 
 Download the `.streamDeckPlugin` installer from the
-[native plugin preview release](https://github.com/h4rm0n1c/stratagema/releases/tag/streamdeck-v0.1.6.0)
+[native plugin preview release](https://github.com/h4rm0n1c/stratagema/releases/tag/streamdeck-v0.1.7.0)
 and double-click it. Requires Windows 10+ and Stream Deck 7.0+.
 
 In Stream Deck's Stratagema action list, drag **Stratagema Stratagem** onto a key

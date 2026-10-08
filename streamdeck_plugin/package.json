@@ -1,14 +1,14 @@
 {
   "name": "stratagema-streamdeck-plugin",
-  "version": "0.1.6",
+  "version": "0.1.7",
   "private": true,
   "description": "Stratagema Stream Deck plugin runtime",
   "engines": {
     "node": ">=20"
   },
   "scripts": {
-    "test": "node --test test/*.test.js",
-    "test:ui": "node --test test/browser/*.test.js",
+    "test": "node scripts/run-tests.js",
+    "test:ui": "node scripts/run-tests.js browser",
     "pack": "streamdeck pack ../dist/com.stratagema.sdplugin.sdPlugin --output ../dist --force --no-file-list --no-update-check"
   },
   "dependencies": {

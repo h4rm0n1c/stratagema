@@ -4,7 +4,7 @@ Run stratagem macros directly from Stream Deck without Advanced Launcher.
 
 ## Install
 
-Download **com.stratagema.sdplugin-0.1.6.0.streamDeckPlugin** below and double-click
+Download **com.stratagema.sdplugin-0.1.7.0.streamDeckPlugin** below and double-click
 it to install or update. Requires **Windows 10 or later** and **Stream Deck 7.0
 or later**. The Windows keyboard helper is included.
 

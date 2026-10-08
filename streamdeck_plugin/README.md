@@ -101,7 +101,7 @@ To prepare a release once the remaining concerns are addressed:
 2. Commit the changes to `streamdeck-plugin` and push the branch. Check the
    **Build Stream Deck plugin** workflow and test its installer in Stream Deck.
 3. Tag the tested commit as `streamdeck-v<manifest-version>` and push that tag,
-   e.g. `streamdeck-v0.1.6.0`. CI rejects a tag that differs from the manifest.
+   e.g. `streamdeck-v0.1.7.0`. CI rejects a tag that differs from the manifest.
 4. CI rebuilds and tests that commit, then creates a **draft prerelease** with the
    installer and SHA-256 checksum. Review the draft and publish it when ready.
 
