@@ -6,7 +6,7 @@ const DEFAULT_SETTINGS = {
   skipCtrl: false,
 };
 
-const COMMANDS_FALLBACK_DELAY_MS = 800;
+const COMMANDS_RESPONSE_TIMEOUT_MS = 3000;
 
 const EMBEDDED_COMMANDS = [
   {
@@ -523,12 +523,16 @@ let actionContext = null;
 let settings = { ...DEFAULT_SETTINGS };
 let globalSettings = {};
 let commands = [];
-let commandsReceivedFromPlugin = false;
+let commandsRequestTimer = null;
 
 function connectElgatoStreamDeckSocket(port, inUUID, registerEvent, info, inActionInfo) {
   uuid = inUUID;
   actionInfo = JSON.parse(inActionInfo || '{}');
   actionContext = actionInfo.context || uuid;
+  settings = { ...DEFAULT_SETTINGS, ...(actionInfo.payload?.settings || {}) };
+  populateStratagems();
+  syncForm();
+  setConnected(false, 'Connecting to Stream Deck...');
   websocket = new WebSocket(`ws://127.0.0.1:${port}`);
 
   websocket.onopen = () => {
@@ -540,24 +544,32 @@ function connectElgatoStreamDeckSocket(port, inUUID, registerEvent, info, inActi
     );
     requestSettings();
     requestGlobalSettings();
-    sendToPlugin({ type: 'refreshCommands' });
-    window.setTimeout(() => {
-      if (!commandsReceivedFromPlugin) {
-        loadCommandsFallback();
-      }
-    }, COMMANDS_FALLBACK_DELAY_MS);
+    setConnected(true, 'Connected to Stream Deck');
+    requestCommands();
   };
 
   websocket.onmessage = (evt) => {
-    const data = JSON.parse(evt.data);
-    handleMessage(data);
+    try {
+      handleMessage(JSON.parse(evt.data));
+    } catch (err) {
+      console.error('Invalid Stream Deck message:', err);
+      setCommandsStatus(`Invalid Stream Deck message: ${err.message}`, true);
+    }
+  };
+  websocket.onerror = () => setConnected(false, 'Could not connect to Stream Deck. Restart Stream Deck and try again.');
+  websocket.onclose = () => {
+    window.clearTimeout(commandsRequestTimer);
+    setConnected(false, 'Disconnected from Stream Deck. Re-select the key to reconnect.');
   };
 }
 
 function handleMessage(msg) {
+  if (['didReceiveSettings', 'sendToPropertyInspector'].includes(msg.event) &&
+      msg.context && msg.context !== actionContext && msg.context !== uuid) return;
   switch (msg.event) {
     case 'didReceiveSettings':
       settings = { ...DEFAULT_SETTINGS, ...(msg.payload.settings || {}) };
+      populateStratagems();
       syncForm();
       break;
     case 'didReceiveGlobalSettings':
@@ -575,24 +587,23 @@ function handleMessage(msg) {
 function handlePluginPayload(payload) {
   switch (payload.type) {
     case 'commands': {
-      commandsReceivedFromPlugin = true;
+      window.clearTimeout(commandsRequestTimer);
       const pluginCommands = payload.commands || [];
-      if (pluginCommands.length === 0 && commands.length > 0) {
-        setCommandsStatus('Warning: plugin returned 0 commands; using embedded fallback.', true);
-        break;
-      }
       applyCommands(pluginCommands);
       break;
     }
     case 'commandsStatus':
+      window.clearTimeout(commandsRequestTimer);
       renderCommandsStatus(payload);
       break;
     case 'commandsError':
+      window.clearTimeout(commandsRequestTimer);
       setCommandsStatus(payload.message || 'Failed to load commands from plugin.', true);
       break;
     case 'syncSettings':
       settings = { ...DEFAULT_SETTINGS, ...(payload.settings || {}) };
       globalSettings = payload.globalSettings || {};
+      populateStratagems();
       syncForm();
       syncGlobalForm();
       break;
@@ -611,65 +622,56 @@ function loadCommandsFallback() {
   }
 
   applyCommands(EMBEDDED_COMMANDS);
-  setCommandsStatus(`Loaded ${commands.length} commands from embedded fallback.`);
+  setCommandsStatus(`Bundled catalogue: ${commands.length} commands. Waiting for plugin...`, true);
 }
 
 function applyCommands(loadedCommands) {
   commands = loadedCommands;
-  const updated = applySelectionDefaults();
   populateStratagems();
   syncForm();
-  if (updated) {
-    setSettings();
-  }
 }
 
 function requestSettings() {
-  websocket.send(
-    JSON.stringify({
-      event: 'getSettings',
-      context: actionContext,
-    })
-  );
+  // Inspector commands use the registration UUID. Stream Deck resolves it to
+  // the key's action context when delivering the event to the plugin.
+  send({
+    event: 'getSettings',
+    action: actionInfo.action,
+    context: uuid,
+  });
 }
 
 function requestGlobalSettings() {
-  websocket.send(
-    JSON.stringify({
-      event: 'getGlobalSettings',
-      context: actionContext,
-    })
-  );
+  send({
+    event: 'getGlobalSettings',
+    context: uuid,
+  });
 }
 
 function setSettings() {
-  websocket.send(
-    JSON.stringify({
-      event: 'setSettings',
-      context: actionContext,
-      payload: settings,
-    })
-  );
+  send({
+    event: 'setSettings',
+    action: actionInfo.action,
+    context: uuid,
+    payload: settings,
+  });
 }
 
 function setGlobalSettings() {
-  websocket.send(
-    JSON.stringify({
-      event: 'setGlobalSettings',
-      context: actionContext,
-      payload: globalSettings,
-    })
-  );
+  send({
+    event: 'setGlobalSettings',
+    context: uuid,
+    payload: globalSettings,
+  });
 }
 
 function sendToPlugin(payload) {
-  websocket.send(
-    JSON.stringify({
-      event: 'sendToPlugin',
-      context: actionContext,
-      payload,
-    })
-  );
+  send({
+    event: 'sendToPlugin',
+    action: actionInfo.action,
+    context: uuid,
+    payload,
+  });
 }
 
 function populateStratagems() {
@@ -699,31 +701,6 @@ function populateStratagems() {
   }
 
   select.value = settings.stratagemId || '';
-}
-
-function applySelectionDefaults() {
-  let updated = false;
-
-  if (!settings.stratagemId) {
-    return updated;
-  }
-
-  const selected = commands.find((cmd) => cmd.id === settings.stratagemId);
-  if (!selected) {
-    return updated;
-  }
-
-  if (!settings.code) {
-    settings.code = selected.code;
-    updated = true;
-  }
-
-  if (!settings.cooldownSeconds) {
-    settings.cooldownSeconds = selected.cooldownSeconds;
-    updated = true;
-  }
-
-  return updated;
 }
 
 function syncForm() {
@@ -815,17 +792,36 @@ function attachListeners() {
   });
 
   document.getElementById('refresh-commands').addEventListener('click', () => {
-    sendToPlugin({ type: 'refreshCommands' });
-    window.setTimeout(() => {
-      if (!commandsReceivedFromPlugin) {
-        loadCommandsFallback();
-      }
-    }, COMMANDS_FALLBACK_DELAY_MS);
+    requestCommands();
   });
 }
 
 window.addEventListener('DOMContentLoaded', () => {
   attachListeners();
-  populateStratagems();
   loadCommandsFallback();
+  syncGlobalForm();
+  setConnected(false, 'Waiting for Stream Deck...');
 });
+
+function send(message) {
+  if (!websocket || websocket.readyState !== WebSocket.OPEN) return;
+  websocket.send(JSON.stringify(message));
+}
+
+function requestCommands() {
+  window.clearTimeout(commandsRequestTimer);
+  setCommandsStatus('Loading commands.txt...');
+  sendToPlugin({ type: 'refreshCommands' });
+  commandsRequestTimer = window.setTimeout(() => {
+    setCommandsStatus('Plugin did not respond. Showing the last available catalogue; commands.txt reload is unavailable.', true);
+  }, COMMANDS_RESPONSE_TIMEOUT_MS);
+}
+
+function setConnected(connected, message) {
+  const status = document.getElementById('connection-status');
+  status.textContent = message;
+  status.classList.toggle('warning', !connected);
+  document.querySelectorAll('input, select, button').forEach((control) => {
+    control.disabled = !connected;
+  });
+}

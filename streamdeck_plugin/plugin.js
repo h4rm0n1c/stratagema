@@ -1,6 +1,7 @@
 const childProcess = require('child_process');
 const net = require('net');
 const path = require('path');
+const WebSocket = require('ws');
 const { loadCommandsFromFile, resolveIconPath } = require('./shared/commands');
 
 function buildHelperArgs(code, settings = {}) {
@@ -61,12 +62,20 @@ class StratagemaPlugin {
     };
 
     this.websocket.onmessage = (evt) => {
-      const data = JSON.parse(evt.data);
-      this.routeMessage(data);
+      try {
+        this.routeMessage(JSON.parse(evt.data));
+      } catch (err) {
+        console.error(`Failed to handle Stream Deck message: ${err.message}`);
+      }
+    };
+
+    this.websocket.onerror = (evt) => {
+      console.error(`Stream Deck connection failed: ${evt.message}`);
     };
 
     this.websocket.onclose = () => {
       this.websocket = null;
+      this.stopTcpServer();
     };
   }
 
@@ -363,7 +372,7 @@ class StratagemaPlugin {
   }
 
   sendToPropertyInspector(context, payload) {
-    if (!this.websocket) {
+    if (!this.websocket || this.websocket.readyState !== WebSocket.OPEN) {
       return;
     }
     this.websocket.send(
@@ -376,7 +385,7 @@ class StratagemaPlugin {
   }
 
   send(payload) {
-    if (!this.websocket) {
+    if (!this.websocket || this.websocket.readyState !== WebSocket.OPEN) {
       return;
     }
     this.websocket.send(JSON.stringify(payload));
@@ -498,10 +507,39 @@ class StratagemaPlugin {
   }
 }
 
-const plugin = new StratagemaPlugin();
+let plugin;
 
 function connectElgatoStreamDeckSocket(port, uuid, registerEvent) {
+  plugin = plugin || new StratagemaPlugin();
   plugin.connect(port, uuid, registerEvent);
+  return plugin;
+}
+
+function parseLaunchArgs(args) {
+  const values = {};
+  for (let i = 0; i < args.length; i += 2) {
+    if (!args[i].startsWith('-') || args[i + 1] === undefined) {
+      throw new Error(`Missing value for launch argument ${args[i]}`);
+    }
+    values[args[i]] = args[i + 1];
+  }
+  const port = Number(values['-port']);
+  const uuid = values['-pluginUUID'];
+  const registerEvent = values['-registerEvent'];
+  if (!Number.isInteger(port) || port < 1 || port > 65535 || !uuid || registerEvent !== 'registerPlugin') {
+    throw new Error('Expected -port <1-65535> -pluginUUID <uuid> -registerEvent registerPlugin');
+  }
+  return { port, uuid, registerEvent };
+}
+
+if (require.main === module) {
+  try {
+    const { port, uuid, registerEvent } = parseLaunchArgs(process.argv.slice(2));
+    connectElgatoStreamDeckSocket(port, uuid, registerEvent);
+  } catch (err) {
+    console.error(`Unable to start Stratagema: ${err.message}`);
+    process.exitCode = 1;
+  }
 }
 
 if (typeof module !== 'undefined') {
@@ -510,5 +548,6 @@ if (typeof module !== 'undefined') {
     buildHelperArgs,
     buildHelperSpawnOptions,
     connectElgatoStreamDeckSocket,
+    parseLaunchArgs,
   };
 }

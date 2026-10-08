@@ -1,15 +1,17 @@
-# Stratagema Stream Deck Plugin (scaffold)
+# Stratagema native Stream Deck plugin (preview)
 
-This folder contains the initial scaffold for the Stratagema Stream Deck plugin described in the design docs (`docs/streamdeck_plugin_plan.md`). The structure is ready for Property Inspector wiring, helper invocation, and packaging into a `.streamDeckPlugin` bundle.
+This Windows plugin runs stratagem macros without Advanced Launcher. The repaired
+plugin has been confirmed working in Stream Deck by the maintainer. It is still
+a preview with outstanding feature work listed in `docs/plugin_runtime_review.md`.
 
 ## Layout
-- `manifest.json` – SDK v6 manifest for the `com.stratagema.sdplugin.stratagem` key.
+- `manifest.json` – SDK v2 manifest with the Node 20 runtime for the `com.stratagema.sdplugin.stratagem` key. Windows only; the macro helper does not implement macOS input.
 - `plugin.js` – Plugin runtime script that connects to the Stream Deck websocket, hydrates settings, and relays stratagem metadata to the Property Inspector.
 - `property-inspector/` – HTML/CSS/JS for the per-key and global settings UI.
 - `shared/commands.js` – Shared parser for `commands.txt` with a blank-icon fallback.
 - `commands.txt` – Stratagem list (copied from the archived generator) used by the Property Inspector dropdown.
 - `icons/blank.png` – Default icon placeholder stored in the repo-wide icons set and copied in at build time.
-- `scripts/package.sh` – Helper script to assemble an unsigned developer bundle.
+- `scripts/package.ps1` / `scripts/package.sh` – Windows and cross-compilation scripts that create the installer using Elgato's pinned CLI.
 
 ## commands.txt format
 Each stratagem is one line: `id|code|cooldownSeconds`, e.g.:
@@ -21,23 +23,90 @@ machine_gun|saswd|410
 Icons are expected to match the `id` (for example `icons/machine_gun.png`).
 
 ## Packaging (unsigned developer bundle)
-Run from the repository root:
+Install runtime dependencies and run the protocol tests:
 
 ```
-bash streamdeck_plugin/scripts/package.sh
+cd streamdeck_plugin
+npm ci
+npm test
+npx playwright install chromium
+npm run test:ui
 ```
 
-The script first builds the helper (`cargo build --release` from `macro_stub`; override the cargo target with `HELPER_TARGET=<triple>` when cross-compiling), generates `commands.json` from `commands.txt`, then copies the plugin sources and repo-wide `icons/` directory into `dist/com.stratagema.sdplugin.sdPlugin`. The freshly built helper is bundled into `helper/` (renamed to `stratagema_macro_helper` if the cargo output is `macro_stub`) before creating `dist/com.stratagema.sdplugin.streamDeckPlugin` for manual installation.
+When Elgato launches `plugin.js`, it supplies `-port`, `-pluginUUID`,
+`-registerEvent`, and `-info` arguments. The entry point connects to the local
+WebSocket, registers the plugin, and requests global settings. The bundled `ws`
+dependency supplies WebSockets on Node 20.
+
+The inspector uses bundled HTML/CSS/JavaScript with no CDN dependencies. The browser
+tests load that actual HTML in Chromium and connect it to the real plugin process
+through a simulated Stream Deck socket router. They cover dropdown selection,
+saved overrides, separate keys, global settings, edited/empty/missing commands.txt,
+and a missing plugin response. They do not exercise Elgato itself or game input.
+On Linux, tests use `/usr/bin/chromium` if present; `STREAMDECK_TEST_BROWSER` can
+specify another browser executable.
+
+The dropdown starts with a clearly labelled bundled catalogue while connecting.
+The plugin's live commands.txt response replaces it, including an empty result.
+Reload reports a timeout or file error instead of claiming the fallback was loaded
+from commands.txt. Existing selections missing from the file remain visible.
+
+On Windows, install source dependencies once, then run from the repository root
+in PowerShell 7 (as used by GitHub Actions):
+
+```
+npm ci --prefix streamdeck_plugin
+./streamdeck_plugin/scripts/package.ps1
+```
+
+On Linux, install the Rust Windows target and MinGW first, then use:
+
+```
+rustup target add x86_64-pc-windows-gnu
+HELPER_TARGET=x86_64-pc-windows-gnu bash streamdeck_plugin/scripts/package.sh
+```
+
+Packaging rejects non-Windows helper targets because those builds are placeholders.
+
+Packaging builds the Windows helper and generates catalogue data, then stages
+only runtime files and production dependencies. Elgato's CLI validates the
+manifest and creates `dist/com.stratagema.sdplugin-<manifest-version>.streamDeckPlugin`
+plus `dist/SHA256SUMS.txt`. Double-click the installer to install or update it.
+The unversioned installer is also retained locally. Tests, browser binaries,
+packaging scripts, and the CLI are not shipped in the plugin.
+
+## CI and preview releases
+
+Pull requests and pushes to `streamdeck-plugin` run the Node 20 backend and
+Chromium inspector tests on Windows, build the helper, and upload the installer
+and checksum as the `stratagema-streamdeck-plugin` Actions artifact. GitHub wraps
+Actions artifact downloads in a ZIP; the installer inside is the clickable
+`.streamDeckPlugin` file. The eventual release attaches that installer directly.
+
+To prepare a release once the remaining concerns are addressed:
+
+1. Update the four-part `Version` in `manifest.json` and the matching three-part
+   version in `package.json` / `package-lock.json`. Update
+   `docs/streamdeck_release_notes.md` with the preview's actual behavior and limits.
+2. Commit the changes to `streamdeck-plugin` and push the branch. Check the
+   **Build Stream Deck plugin** workflow and test its installer in Stream Deck.
+3. Tag the tested commit as `streamdeck-v<manifest-version>` and push that tag,
+   e.g. `streamdeck-v0.1.2.0`. CI rejects a tag that differs from the manifest.
+4. CI rebuilds and tests that commit, then creates a **draft prerelease** with the
+   installer and SHA-256 checksum. Review the draft and publish it when ready.
+
+Branch pushes do not create releases. Tags use the `streamdeck-v` prefix to keep the native preview separate
+from the Advanced Launcher releases on `main`.
 
 ## Manual test checklist
 These steps mirror the validation matrix in the Stream Deck plugin design docs:
 
 - **Property Inspector dropdown** – Open the Property Inspector, ensure the stratagem dropdown populates from `commands.txt`, and verify custom code/cooldown fields sync back to the key when changed.
 - **Keypress → helper** – Press a configured key and confirm the helper launches with the expected code/flags (WASD vs. arrows, control toggle) and the key shows the standard OK indicator.
-- **Cooldown overlay/reset** – After a keypress, watch the countdown overlay decrease per the `commands.txt` cooldown; reload the plugin and confirm the countdown resets.
+- **Cooldown overlay/reset (not implemented yet)** – The runtime sends a `cooldownStarted` notification to the inspector, but does not yet draw a key countdown or support long-press reset. This remains a feature parity task.
 - **TCP listener reconnect** – Run a listener for helper JSON events, trigger a stratagem, then restart the listener to ensure subsequent keypresses are still delivered after reconnecting.
 
 ## Helper lookup and errors
-- The plugin prefers a bundled helper at `helper/stratagema_macro_helper` inside the plugin bundle (platform extension applied as needed). A global setting `helperPath` can point to an external binary; if valid, it overrides the bundled copy.
-- If neither path is usable or the process fails to spawn/exit cleanly, the plugin logs the failure to the Stream Deck log and shows the standard alert state on the key that was pressed.
+- The plugin uses the bundled Windows helper at `helper/stratagema_macro_helper.exe`. External helper path overrides are not implemented.
+- If the bundled helper is missing or fails to spawn/exit cleanly, the plugin logs the failure to the Stream Deck log and shows the standard alert state on the key that was pressed.
 - See `docs/plugin_helper_contract.md` for the complete invocation contract and stdout/stderr expectations.

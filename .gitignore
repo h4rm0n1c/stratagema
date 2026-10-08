@@ -1,2 +1,4 @@
 /target
 /dist
+node_modules/
+/streamdeck_plugin/commands.json

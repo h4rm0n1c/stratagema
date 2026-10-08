@@ -4,11 +4,6 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Stratagema Stratagem</title>
-    <link
-      rel="stylesheet"
-      href="https://cdn.jsdelivr.net/gh/barraider/streamdeck-easypi@latest/src/sdpi.css"
-    />
-    <script src="https://cdn.jsdelivr.net/gh/barraider/streamdeck-easypi@latest/src/sdtools.common.js"></script>
     <link rel="stylesheet" href="pi.css" />
   </head>
   <body>
@@ -58,6 +53,10 @@
         <button id="refresh-commands" class="sdpi-item-value" type="button">
           Reload commands.txt
         </button>
+      </div>
+      <div class="sdpi-item pi-status-row">
+        <div class="sdpi-item-label">Connection</div>
+        <div class="sdpi-item-value pi-status warning" id="connection-status">Waiting for Stream Deck...</div>
       </div>
       <div class="sdpi-item pi-status-row">
         <div class="sdpi-item-label"></div>

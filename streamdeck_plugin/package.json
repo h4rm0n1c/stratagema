@@ -1,0 +1,21 @@
+{
+  "name": "stratagema-streamdeck-plugin",
+  "version": "0.1.2",
+  "private": true,
+  "description": "Stratagema Stream Deck plugin runtime",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "test": "node --test test/*.test.js",
+    "test:ui": "node --test test/browser/*.test.js",
+    "pack": "streamdeck pack ../dist/com.stratagema.sdplugin.sdPlugin --output ../dist --force --no-file-list --no-update-check"
+  },
+  "dependencies": {
+    "ws": "^8.18.0"
+  },
+  "devDependencies": {
+    "@elgato/cli": "1.10.1",
+    "playwright": "^1.64.0"
+  }
+}

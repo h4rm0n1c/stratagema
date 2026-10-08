@@ -2,6 +2,12 @@ name: Build Stream Deck plugin
 
 on:
   pull_request:
+  push:
+    branches: [streamdeck-plugin]
+    tags: ['streamdeck-v*']
+
+permissions:
+  contents: read
 
 jobs:
   build-plugin:
@@ -10,103 +16,76 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Check release version
+        if: startsWith(github.ref, 'refs/tags/streamdeck-v')
+        shell: pwsh
+        run: |
+          $version = (Get-Content streamdeck_plugin/manifest.json -Raw | ConvertFrom-Json).Version
+          if ($env:GITHUB_REF_NAME -ne "streamdeck-v$version") {
+            throw "Release tag must match manifest version: streamdeck-v$version"
+          }
+
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
 
-      - name: Build helper
-        run: cargo build --release -p macro_stub
-
-      - name: Generate commands.json
-        run: node streamdeck_plugin/scripts/generate_commands_json.mjs
-
-      - name: Package helper artifact
-        shell: pwsh
-        run: |
-          $ErrorActionPreference = "Stop"
-
-          New-Item -ItemType Directory -Force -Path dist | Out-Null
-
-          $helperCandidates = @(
-            "macro_stub\\target\\release\\stratagema_macro_helper.exe",
-            "macro_stub\\target\\release\\macro_stub.exe",
-            "target\\release\\stratagema_macro_helper.exe",
-            "target\\release\\macro_stub.exe"
-          )
-
-          $helperSource = $helperCandidates | Where-Object { Test-Path $_ } | Select-Object -First 1
-
-          if (-not $helperSource) {
-            throw "Helper executable not found at any of: $($helperCandidates -join ', ')"
-          }
-
-          $helperName = "stratagema_macro_helper.exe"
-          Copy-Item -Path $helperSource -Destination (Join-Path "dist" $helperName) -Force
-          Copy-Item -Path "macro_stub\\assets\\blank.ico" -Destination "dist" -Force
-          Copy-Item -Path "macro_stub\\README.md" -Destination "dist" -Force
-
-      - name: Upload helper artifact
-        uses: actions/upload-artifact@v4
+      - name: Install Node.js
+        uses: actions/setup-node@v4
         with:
-          name: macro-stub-windows
-          path: |
-            dist/stratagema_macro_helper.exe
-            dist/blank.ico
-            dist/README.md
+          node-version: '20'
+          cache: npm
+          cache-dependency-path: streamdeck_plugin/package-lock.json
 
-      - name: Package Stream Deck plugin
+      - name: Install dependencies
+        working-directory: streamdeck_plugin
+        run: npm ci
+
+      - name: Test backend
+        working-directory: streamdeck_plugin
+        run: npm test
+
+      - name: Install test browser
+        working-directory: streamdeck_plugin
+        run: npx playwright install chromium
+
+      - name: Test inspector
+        working-directory: streamdeck_plugin
+        run: npm run test:ui
+
+      - name: Build and package installer
         shell: pwsh
-        run: |
-          $ErrorActionPreference = "Stop"
+        run: ./streamdeck_plugin/scripts/package.ps1
 
-          $root = Resolve-Path "streamdeck_plugin"
-          $dist = Join-Path $root "..\\dist"
-          $pluginUuid = "com.stratagema.sdplugin"
-          $pluginId = "$pluginUuid.sdPlugin"
-          $buildDir = Join-Path $dist $pluginId
-          $helperName = "stratagema_macro_helper.exe"
-          $helperTargetDir = Join-Path $buildDir "helper"
-          $archivePath = Join-Path $dist "$pluginUuid.streamDeckPlugin"
-
-          if (Test-Path $buildDir) {
-            Remove-Item $buildDir -Recurse -Force
-          }
-
-          New-Item -ItemType Directory -Path $buildDir -Force | Out-Null
-
-          Copy-Item -Path "$root\\*" -Destination $buildDir -Recurse -Force
-          New-Item -ItemType Directory -Path (Join-Path $buildDir "icons") -Force | Out-Null
-          Copy-Item -Path "icons\\*" -Destination (Join-Path $buildDir "icons") -Recurse -Force
-
-          New-Item -ItemType Directory -Path $helperTargetDir -Force | Out-Null
-
-          $helperCandidates = @(
-            "macro_stub\\target\\release\\stratagema_macro_helper.exe",
-            "macro_stub\\target\\release\\macro_stub.exe",
-            "target\\release\\stratagema_macro_helper.exe",
-            "target\\release\\macro_stub.exe"
-          )
-
-          $helperSource = $helperCandidates | Where-Object { Test-Path $_ } | Select-Object -First 1
-
-          if ($null -ne $helperSource) {
-            $helperDest = Join-Path $helperTargetDir $helperName
-            Copy-Item $helperSource -Destination $helperDest -Force
-            Write-Host "Bundled helper: $helperSource -> $helperDest"
-          } else {
-            Write-Warning "Helper executable not found at any of: $($helperCandidates -join ', '); bundle will rely on external helper."
-          }
-
-          if (Test-Path $archivePath) {
-            Remove-Item $archivePath -Force
-          }
-
-          Compress-Archive -Path $buildDir -DestinationPath $archivePath
-          Write-Host "Created $archivePath"
-
-      - name: Upload Stream Deck plugin artifact
+      - name: Upload installer
         uses: actions/upload-artifact@v4
         with:
           name: stratagema-streamdeck-plugin
+          if-no-files-found: error
           path: |
-            dist/com.stratagema.sdplugin.streamDeckPlugin
-            dist/com.stratagema.sdplugin.sdPlugin/**
+            dist/com.stratagema.sdplugin-*.streamDeckPlugin
+            dist/SHA256SUMS.txt
+
+  draft-release:
+    needs: build-plugin
+    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/streamdeck-v')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout release notes
+        uses: actions/checkout@v4
+
+      - name: Download tested installer
+        uses: actions/download-artifact@v4
+        with:
+          name: stratagema-streamdeck-plugin
+          path: dist
+
+      - name: Prepare draft preview release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ github.ref_name }}
+        run: |
+          gh release create "$RELEASE_TAG" dist/*.streamDeckPlugin dist/SHA256SUMS.txt \
+            --verify-tag --draft --prerelease --latest=false \
+            --title "Stratagema Stream Deck ${RELEASE_TAG#streamdeck-v} (preview)" \
+            --notes-file docs/streamdeck_release_notes.md
